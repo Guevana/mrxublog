@@ -1,6 +1,8 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, User, Briefcase, Image as ImageIcon, Mail, ArrowLeft, Terminal } from 'lucide-react';
+import { FileText, User, Briefcase, Image as ImageIcon, Mail, ArrowLeft, Terminal, X } from 'lucide-react';
+import { getCategories, getPosts, WPPost } from '../services/wpService';
+import { format } from 'date-fns';
 
 type Section = 'ABT' | 'ART' | 'PRJ' | 'GLR' | 'CNT';
 
@@ -274,70 +276,110 @@ function DetailView({ sectionId, onBack }: { sectionId: string; onBack: () => vo
 }
 
 function DetailContent({ sectionId }: { sectionId: string }) {
-  if (sectionId === 'ABT') {
-    return (
-      <motion.div initial={{ opacity: 0, scale: 0.98, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="flex flex-col md:flex-row gap-8 items-start w-full bg-white/80 backdrop-blur-md p-6 md:p-10 border border-gray-200 relative group">
-        <div className="w-full md:w-56 aspect-[3/4] bg-gray-100 flex items-center justify-center border border-gray-200 relative overflow-hidden flex-shrink-0">
-           <img src="https://picsum.photos/seed/rhine/400/600?grayscale" className="object-cover w-full h-full opacity-80 mix-blend-multiply transition-transform duration-700 group-hover:scale-105" alt="Profile" />
-           <div className="absolute inset-0 bg-orange-500/10 mix-blend-overlay"></div>
-           
-           <div className="absolute bottom-2 left-2 flex flex-col gap-1">
-              <div className="w-8 h-px bg-white/80"></div>
-              <div className="text-[8px] tracking-[0.2em] text-white/80 font-mono">SCANNED</div>
-           </div>
-           <div className="absolute top-2 right-2 w-2 h-2 border border-white/50"></div>
-        </div>
-        
-        <div className="flex-1 flex flex-col pt-2">
-          <div className="text-[10px] text-orange-500 font-bold tracking-[0.2em] uppercase mb-2">Director / Lead</div>
-          <h3 className="text-3xl font-black tracking-widest uppercase mb-6 border-b border-gray-200 pb-4 text-gray-900">John Doe</h3>
-          
-          <div className="grid grid-cols-2 gap-6 text-xs tracking-[0.1em] uppercase text-gray-600 mb-8 border-b border-gray-100 pb-6">
-            <div className="flex flex-col gap-1"><span className="text-[9px] text-gray-400">SPECIALIZATION</span><span className="font-bold text-gray-800">Advanced Interfaces</span></div>
-            <div className="flex flex-col gap-1"><span className="text-[9px] text-gray-400">AFFILIATION</span><span className="font-bold text-gray-800">Personal LLC.</span></div>
-            <div className="flex flex-col gap-1"><span className="text-[9px] text-gray-400">EXPERIENCE</span><span className="font-bold text-gray-800">&gt; 10 Years Data</span></div>
-            <div className="flex flex-col gap-1"><span className="text-[9px] text-gray-400">STATUS</span><span className="font-bold text-green-600">Active Duty</span></div>
-          </div>
+  const [posts, setPosts] = useState<WPPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<WPPost | null>(null);
 
-          <p className="text-[13px] text-gray-600 leading-relaxed font-normal tracking-wide">
-            An expert in crafting robust, highly technical web architectures and immersive frontend experiences. Proven track record of turning complex operational requirements into streamlined, user-centric interfaces.
-          </p>
+  // Map section IDs to standard category slugs (or use generic fetch if mapping fails)
+  const categoryMap: { [key: string]: string } = {
+    'ABT': 'about',
+    'ART': 'articles',
+    'PRJ': 'projects',
+    'GLR': 'gallery',
+    'CNT': 'contact'
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setSelectedPost(null);
+    const fetchContent = async () => {
+      try {
+        const slug = categoryMap[sectionId] || sectionId.toLowerCase();
+        // First get the category ID matching the slug
+        const categories = await getCategories(slug);
+        
+        let fetchedPosts: WPPost[] = [];
+        if (categories.length > 0) {
+          fetchedPosts = await getPosts(categories[0].id, 1, 20); // fetch up to 20 posts
+        } else {
+          // If no specific category found, just fetch latest posts to avoid an empty screen in demo
+          fetchedPosts = await getPosts(undefined, 1, 20);
+        }
+        setPosts(fetchedPosts);
+      } catch (err) {
+        console.error('Error fetching content', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContent();
+  }, [sectionId]);
+
+  if (selectedPost) {
+    return (
+      <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full bg-white/95 backdrop-blur-md p-8 border border-gray-200 relative min-h-[500px] flex flex-col max-h-[70vh] overflow-hidden">
+        <button onClick={() => setSelectedPost(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors z-10 border border-transparent hover:border-gray-200">
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+        <div className="overflow-y-auto pr-4 customize-scrollbar flex-1">
+           <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-4">
+             Record ID: {selectedPost.id} | {format(new Date(selectedPost.date), 'yyyy.MM.dd')}
+           </div>
+           <h2 className="text-3xl font-black tracking-widest uppercase mb-10 border-b border-gray-200 pb-6 text-gray-900" dangerouslySetInnerHTML={{ __html: selectedPost.title.rendered }} />
+           
+           {selectedPost._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
+             <div className="w-full h-64 mb-8 bg-gray-100 overflow-hidden border border-gray-200">
+               <img src={selectedPost._embedded['wp:featuredmedia'][0].source_url} alt="Featured" className="w-full h-full object-cover" />
+             </div>
+           )}
+
+           <div className="prose prose-sm md:prose-base prose-gray max-w-none tracking-wide" dangerouslySetInnerHTML={{ __html: selectedPost.content.rendered }} />
         </div>
       </motion.div>
     );
   }
 
-  // Placeholder for others
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="w-full bg-white/80 backdrop-blur-md p-8 border border-gray-200 relative min-h-[400px] flex flex-col">
-       <div className="absolute top-0 right-0 p-3 text-[9px] text-gray-400 tracking-widest text-right bg-gray-50 border-l border-b border-gray-200">
+    <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="w-full bg-white/80 backdrop-blur-md p-6 md:p-8 border border-gray-200 relative h-[60vh] flex flex-col">
+       <div className="absolute top-0 right-0 p-3 text-[9px] text-gray-400 tracking-widest text-right bg-gray-50 border-l border-b border-gray-200 z-10">
           DATA RETRIEVAL <br />
           {sectionId}-ARCHIVE
         </div>
-       <h3 className="text-xl font-bold tracking-[0.2em] uppercase mb-8 text-gray-900 border-b border-gray-200 pb-4">
+       <h3 className="text-xl font-bold tracking-[0.2em] uppercase mb-6 text-gray-900 border-b border-gray-200 pb-4">
          Database Records
        </h3>
-       <div className="flex flex-col gap-4 flex-1">
-         {[1, 2, 3].map((i) => (
-           <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + (i * 0.1) }} className="flex flex-col md:flex-row gap-6 p-4 border border-gray-100 hover:border-orange-500 bg-white hover:bg-orange-50/30 transition-all group cursor-pointer relative">
-             <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-orange-500 transition-colors"></div>
-             <div className="w-16 h-16 bg-gray-50 flex-shrink-0 flex items-center justify-center border border-gray-100 group-hover:border-orange-200 transition-colors">
-               <FileText className="w-6 h-6 text-gray-400 group-hover:text-orange-500 transition-colors" />
+       
+       <div className="flex flex-col gap-4 flex-1 overflow-y-auto pr-2 customize-scrollbar relative">
+         {loading ? (
+             <div className="absolute inset-0 flex items-center justify-center text-[10px] tracking-widest uppercase text-gray-400 font-bold">
+               Syncing with Central DB...
              </div>
-             <div className="flex flex-col justify-center">
-               <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-1">
-                 Record 00{i}.{sectionId} 
-                 <span className="inline-block ml-4 text-orange-500 font-mono">2026.04.17</span>
-               </div>
-               <div className="text-sm font-bold tracking-widest uppercase text-gray-800 group-hover:text-orange-600 transition-colors">
-                 Classified {sectionId} Entry Protocol
-               </div>
-               <p className="text-[11px] text-gray-500 mt-2 line-clamp-1 tracking-wide">
-                 Detailed analysis and synthesis of information gathered during recent operational phases. Decrypting protocol...
-               </p>
+         ) : posts.length === 0 ? (
+             <div className="absolute inset-0 flex items-center justify-center text-[10px] tracking-widest uppercase text-gray-400 font-bold">
+               No records found.
              </div>
-           </motion.div>
-         ))}
+         ) : (
+           posts.map((post, i) => (
+             <motion.div key={post.id} onClick={() => setSelectedPost(post)} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + (i * 0.05) }} className="flex flex-col md:flex-row gap-6 p-4 border border-gray-100 hover:border-orange-500 bg-white hover:bg-orange-50/30 transition-all group cursor-pointer relative flex-shrink-0">
+               <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-orange-500 transition-colors"></div>
+               <div className="w-16 h-16 bg-gray-50 flex-shrink-0 flex items-center justify-center border border-gray-100 group-hover:border-orange-200 transition-colors overflow-hidden">
+                 {post._embedded?.['wp:featuredmedia']?.[0]?.source_url ? (
+                    <img src={post._embedded['wp:featuredmedia'][0].source_url} className="w-full h-full object-cover opacity-80 mix-blend-multiply" alt=""/>
+                 ) : (
+                    <FileText className="w-6 h-6 text-gray-400 group-hover:text-orange-500 transition-colors" />
+                 )}
+               </div>
+               <div className="flex flex-col justify-center flex-1">
+                 <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-1 flex items-center gap-4">
+                   <span>Record {post.id}.{sectionId}</span>
+                   <span className="text-orange-500 font-mono">{format(new Date(post.date), 'yyyy.MM.dd')}</span>
+                 </div>
+                 <div className="text-sm font-bold tracking-widest uppercase text-gray-800 group-hover:text-orange-600 transition-colors line-clamp-1" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+                 <div className="text-[11px] text-gray-500 mt-2 line-clamp-2 tracking-wide" dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }} />
+               </div>
+             </motion.div>
+           ))
+         )}
        </div>
     </motion.div>
   );
