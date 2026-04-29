@@ -1,34 +1,30 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, FC } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, User, Briefcase, Image as ImageIcon, Mail, ArrowLeft, Terminal, X } from 'lucide-react';
-import { getCategories, getPosts, WPPost } from '../services/wpService';
+import { FileText, User, Briefcase, Image as ImageIcon, Mail, ArrowLeft, Terminal, X, Box } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { getCategories, getPosts, getPost, WPPost, getAppModules } from '../services/wpService';
 import { format } from 'date-fns';
-
-type Section = 'ABT' | 'ART' | 'PRJ' | 'GLR' | 'CNT';
-
-const SECTIONS = [
-  { id: 'ABT', title: 'ABOUT SECTION', desc: 'PERSONAL INFORMATION & BACKGROUND', icon: User },
-  { id: 'ART', title: 'ARTICLES SECTION', desc: 'TECHNICAL & CREATIVE WRITINGS', icon: FileText },
-  { id: 'PRJ', title: 'PROJECTS SECTION', desc: 'DEVELOPMENT & RESEARCH INITIATIVES', icon: Briefcase },
-  { id: 'GLR', title: 'GALLERY SECTION', desc: 'VISUAL ARTS & PHOTOGRAPHY', icon: ImageIcon },
-  { id: 'CNT', title: 'CONTACT SECTION', desc: 'COMMUNICATION CHANNELS', icon: Mail },
-];
-
-/** 
- * Deterministic pseudo-random number generator 
- * to ensure persistent scattered positions.
- */
-const pseudoRandom = (seed: number) => {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-};
+import { AppModule } from '../types';
 
 export function MainInterface() {
   const [viewState, setViewState] = useState<'HUB' | 'LOADING' | 'DETAIL'>('HUB');
-  const [activeSection, setActiveSection] = useState<string>('');
+  const [activeSection, setActiveSection] = useState<AppModule | null>(null);
+  const [modules, setModules] = useState<AppModule[]>([]);
+  const [loadingModules, setLoadingModules] = useState(true);
 
-  const handleSelect = (id: string) => {
-    setActiveSection(id);
+  useEffect(() => {
+    const fetchMods = async () => {
+      setLoadingModules(true);
+      const mods = await getAppModules();
+      setModules(mods);
+      setLoadingModules(false);
+    };
+    fetchMods();
+  }, []);
+
+  const handleSelect = (module: AppModule) => {
+    if (module.type === 'TEXT_LABEL') return;
+    setActiveSection(module);
     setViewState('LOADING');
     setTimeout(() => {
       setViewState('DETAIL');
@@ -37,7 +33,7 @@ export function MainInterface() {
 
   const handleBack = () => {
     setViewState('HUB');
-    setActiveSection('');
+    setActiveSection(null);
   };
 
   return (
@@ -56,14 +52,14 @@ export function MainInterface() {
       <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none overflow-hidden">
         <AnimatePresence mode="wait">
           {viewState === 'HUB' && (
-            <HubView key="hub" onSelect={handleSelect} />
+            loadingModules ? <LoadingView key="loading_mods" /> : <HubView key="hub" modules={modules} onSelect={handleSelect} />
           )}
           {viewState === 'LOADING' && (
             <LoadingView key="loading" />
           )}
-          {viewState === 'DETAIL' && (
+          {viewState === 'DETAIL' && activeSection && (
             <div key="detail" className="w-full h-full flex flex-col pointer-events-auto px-6 md:px-16 overflow-y-auto pt-24 pb-12">
-              <DetailView sectionId={activeSection} onBack={handleBack} />
+              <DetailView section={activeSection} onBack={handleBack} />
             </div>
           )}
         </AnimatePresence>
@@ -74,14 +70,28 @@ export function MainInterface() {
   );
 }
 
-function HubView({ onSelect }: { onSelect: (id: string) => void }) {
+/** 
+ * Deterministic pseudo-random number generator 
+ * to ensure persistent scattered positions.
+ */
+const pseudoRandom = (seed: number) => {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+};
+
+interface HubViewProps {
+  modules: AppModule[];
+  onSelect: (module: AppModule) => void;
+}
+
+const HubView: FC<HubViewProps> = ({ modules, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate stable random points in a circular pattern around the core
   const layoutNodes = useMemo(() => {
-    return SECTIONS.map((section, idx) => {
+    return modules.map((module, idx) => {
       // 0 to 2*PI, distributed smoothly with slight random variation
-      const baseAngle = (idx / SECTIONS.length) * Math.PI * 2;
+      const baseAngle = (idx / modules.length) * Math.PI * 2;
       const angleOffset = (pseudoRandom(idx) - 0.5) * 0.8; 
       const angle = baseAngle + angleOffset;
       
@@ -89,12 +99,12 @@ function HubView({ onSelect }: { onSelect: (id: string) => void }) {
       const radius = 280 + pseudoRandom(idx * 2) * 200;
 
       return {
-        ...section,
+        ...module,
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
       };
     });
-  }, []);
+  }, [modules]);
 
   return (
     <motion.div 
@@ -161,17 +171,109 @@ function HubView({ onSelect }: { onSelect: (id: string) => void }) {
   );
 }
 
-function SectionCard({ item, onSelect }: any) {
+function SectionCard({ item, onSelect }: { item: any; onSelect: (item: any) => void }) {
+  const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
+
+  const getSizeClasses = (size?: string) => {
+    switch (size) {
+      case 'medium': return 'w-72 h-40';
+      case 'large': return 'w-96 h-56';
+      case 'small':
+      default: return 'w-56 h-32';
+    }
+  };
+
+  const textLabelSizeClasses = (size?: string) => {
+    switch (size) {
+      case 'medium': return 'w-72 p-8';
+      case 'large': return 'w-96 p-10';
+      case 'small':
+      default: return 'w-56 p-6';
+    }
+  };
+
+  const getPhotoWidthClasses = (size?: string) => {
+    switch (size) {
+      case 'medium': return 'w-72';
+      case 'large': return 'w-96';
+      case 'small':
+      default: return 'w-56';
+    }
+  };
+
+  if (item.type === 'TEXT_LABEL') {
+    return (
+      <div className={`bg-white/60 backdrop-blur-md border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center group cursor-default ${textLabelSizeClasses(item.size)}`}>
+         <IconComponent className="w-5 h-5 text-gray-400 mb-3" />
+         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 mb-2 border-b border-gray-200 pb-2 w-full break-all">
+            {item.title}
+         </div>
+         <div className="text-[9px] tracking-widest leading-relaxed text-gray-600 uppercase break-all">
+            {item.desc}
+         </div>
+      </div>
+    );
+  }
+
+  if (item.type === 'SINGLE_PHOTO') {
+    const [bgImage, setBgImage] = useState<string | null>(item.imageUrl || null);
+
+    useEffect(() => {
+        if (item.imageUrl) {
+           setBgImage(item.imageUrl);
+           return;
+        }
+
+        const fetchPhoto = async () => {
+            try {
+                const cats = await getCategories(item.wpCategorySlug || 'gallery');
+                let catId;
+                if (cats.length > 0) catId = cats[0].id;
+                
+                const posts = await getPosts(catId, 1, 1);
+                if (posts.length > 0) {
+                   const url = posts[0]._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+                   if (url) setBgImage(url);
+                }
+            } catch (e) {console.warn('Cannot show the photo', e);}
+        };
+        fetchPhoto();
+    }, [item.wpCategorySlug, item.imageUrl]);
+
+    return (
+      <div onClick={() => onSelect(item)} className={`group relative bg-gray-900 border border-gray-300 block overflow-hidden shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-end ${getPhotoWidthClasses(item.size)}`}>
+         {bgImage ? (
+           <img src={bgImage} className="w-full h-auto object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none block" alt="" />
+         ) : (
+           <div className="w-full aspect-[4/3] bg-gray-800" />
+         )}
+         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+         
+         <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
+            <div className="flex items-center gap-2 mb-1 w-full">
+               <IconComponent className="w-3 h-3 text-orange-400 flex-shrink-0" />
+               <div className="text-[12px] font-black tracking-widest uppercase text-white drop-shadow-md truncate">
+                 {item.title}
+               </div>
+            </div>
+            <div className="text-[8px] font-bold tracking-[0.2em] uppercase text-gray-300 drop-shadow-sm line-clamp-1 w-full">
+               {item.desc}
+            </div>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      onClick={() => onSelect(item.id)}
-      className="group relative bg-white/60 backdrop-blur-md border border-gray-200 w-56 h-32 block overflow-hidden shadow-sm cursor-pointer hover:shadow-orange-500/10 hover:shadow-lg transition-shadow duration-300"
+      onClick={() => onSelect(item)}
+      className={`group relative bg-white/60 backdrop-blur-md border border-gray-200 block overflow-hidden shadow-sm cursor-pointer hover:shadow-orange-500/10 hover:shadow-lg transition-shadow duration-300 ${getSizeClasses(item.size)}`}
       style={{ isolation: 'isolate' }}
     >
       {/* Base Content (Default color) */}
       <div className="absolute inset-0 p-6 flex flex-col items-start bg-transparent transition-transform duration-300 ease-linear group-hover:scale-[1.03] z-10">
         <div className="absolute top-0 right-0 w-10 h-10 bg-gray-50 flex items-center justify-center border-l border-b border-gray-200">
-           <item.icon className="w-4 h-4 text-gray-400" />
+           <IconComponent className="w-4 h-4 text-gray-400" />
         </div>
         <div className="text-4xl font-black tracking-tighter mb-3 text-gray-900">
           {item.id}
@@ -182,11 +284,10 @@ function SectionCard({ item, onSelect }: any) {
       </div>
 
       {/* Duplicate Inverted Content clipped by width acting as scanline */}
-      {/* It grows its width from 0% to 100% masking the inner elements cleanly */}
       <div className="absolute top-0 left-0 h-full bg-orange-500 z-20 overflow-hidden w-0 transition-[width] duration-[400ms] ease-linear group-hover:w-full">
-        <div className="w-56 h-32 p-6 flex flex-col items-start relative transition-transform duration-300 ease-linear group-hover:scale-[1.03]">
+        <div className={`p-6 flex flex-col items-start relative transition-transform duration-300 ease-linear group-hover:scale-[1.03] ${getSizeClasses(item.size)}`}>
           <div className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center border-l border-b border-orange-400">
-             <item.icon className="w-4 h-4 text-white" />
+             <IconComponent className="w-4 h-4 text-white" />
           </div>
           <div className="text-4xl font-black tracking-tighter mb-3 text-white">
             {item.id}
@@ -225,9 +326,7 @@ function LoadingView() {
   );
 }
 
-function DetailView({ sectionId, onBack }: { sectionId: string; onBack: () => void }) {
-  const section = SECTIONS.find(s => s.id === sectionId);
-
+function DetailView({ section, onBack }: { section: AppModule; onBack: () => void }) {
   return (
     <motion.div 
       initial={{ opacity: 0, x: 50 }}
@@ -238,7 +337,7 @@ function DetailView({ sectionId, onBack }: { sectionId: string; onBack: () => vo
     >
       <button 
         onClick={onBack} 
-        className="absolute -top-6 left-0 flex items-center gap-3 text-[10px] font-bold tracking-widest text-gray-500 hover:text-orange-500 transition-colors uppercase group"
+        className="absolute -top-6 left-0 flex items-center gap-3 text-[10px] font-bold tracking-widest text-gray-500 hover:text-orange-500 transition-colors uppercase group z-10"
       >
         <span className="w-8 h-[1px] bg-gray-400 group-hover:bg-orange-500 transition-colors"></span>
         <ArrowLeft className="w-4 h-4" /> Return to Hub
@@ -247,54 +346,83 @@ function DetailView({ sectionId, onBack }: { sectionId: string; onBack: () => vo
       <div className="w-full md:w-1/3 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-200 pb-8 md:pb-0 md:pr-12 relative mt-12 md:mt-0">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}>
           <div className="flex items-end gap-2 mb-4">
-            <h2 className="text-8xl md:text-9xl font-black tracking-tighter text-gray-900 leading-none">{section?.id}</h2>
+            <h2 className="text-8xl md:text-9xl font-black tracking-tighter text-gray-900 leading-none break-all line-clamp-1">{section.id}</h2>
             <div className="text-xs font-bold tracking-widest text-orange-500 mb-2">INF</div>
           </div>
           
           <div className="w-16 h-1 bg-orange-500 mb-6"></div>
-          <h3 className="text-sm md:text-base font-bold tracking-[0.2em] text-gray-800 uppercase mb-3">{section?.title}</h3>
-          <p className="text-[11px] md:text-xs text-gray-500 max-w-xs leading-relaxed uppercase tracking-widest">{section?.desc}</p>
+          <h3 className="text-sm md:text-base font-bold tracking-[0.2em] text-gray-800 uppercase mb-3 break-all">{section.title}</h3>
+          <p className="text-[11px] md:text-xs text-gray-500 max-w-xs leading-relaxed uppercase tracking-widest break-all">{section.desc}</p>
 
           <div className="mt-16 flex flex-col gap-6">
             <div className="flex flex-col gap-1 border-l-2 border-green-500 pl-3">
               <span className="text-[9px] text-gray-400 tracking-widest uppercase">System Status</span>
               <span className="text-[11px] font-bold tracking-widest text-gray-800 uppercase">Stable / Active</span>
             </div>
-            <div className="flex flex-col gap-1 border-l-2 border-gray-300 pl-3">
-              <span className="text-[9px] text-gray-400 tracking-widest uppercase">Clearance Level</span>
-              <span className="text-[11px] font-bold tracking-widest text-gray-800 uppercase">Public Access</span>
+            <div className="flex flex-col gap-1 border-l-2 border-orange-400 pl-3">
+              <span className="text-[9px] text-gray-400 tracking-widest uppercase">Module Type</span>
+              <span className="text-[11px] font-bold tracking-widest text-gray-800 uppercase">{section.type.replace('_', ' ')}</span>
             </div>
           </div>
         </motion.div>
       </div>
 
       <div className="w-full md:w-2/3 flex flex-col justify-center relative">
-        <DetailContent sectionId={sectionId} />
+        <DetailContent section={section} />
       </div>
     </motion.div>
   );
 }
 
-function DetailContent({ sectionId }: { sectionId: string }) {
+function DetailContent({ section }: { section: AppModule }) {
   const [posts, setPosts] = useState<WPPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<WPPost | null>(null);
 
-  // Map section IDs to standard category slugs (or use generic fetch if mapping fails)
-  const categoryMap: { [key: string]: string } = {
-    'ABT': 'about',
-    'ART': 'articles',
-    'PRJ': 'projects',
-    'GLR': 'gallery',
-    'CNT': 'contact'
-  };
-
   useEffect(() => {
     setLoading(true);
     setSelectedPost(null);
+
+    // If SINGLE_PHOTO with an explicit imageUrl, display it directly without fetching
+    if (section.type === 'SINGLE_PHOTO' && section.imageUrl) {
+        setSelectedPost({
+            id: parseInt(section.id.replace(/\D/g, '') || '1'), // numeric fallback
+            date: new Date().toISOString(),
+            slug: section.id.toLowerCase(),
+            title: { rendered: section.title },
+            content: { rendered: `<p>${section.desc}</p>` },
+            excerpt: { rendered: section.desc },
+            _embedded: {
+              'wp:featuredmedia': [{ source_url: section.imageUrl }]
+            }
+        } as unknown as WPPost);
+        setLoading(false);
+        return;
+    }
+
+    if (section.type === 'SINGLE_ARTICLE' && section.articleId) {
+       const fetchSingleArticle = async () => {
+         try {
+           const post = await getPost(section.articleId!);
+           if (post) {
+              setPosts([post]); // Keep it in posts array
+              setSelectedPost(post);
+           } else {
+              setPosts([]);
+           }
+         } catch (err) {
+           console.error(err);
+         } finally {
+           setLoading(false);
+         }
+       };
+       fetchSingleArticle();
+       return;
+    }
+
     const fetchContent = async () => {
       try {
-        const slug = categoryMap[sectionId] || sectionId.toLowerCase();
+        const slug = section.wpCategorySlug || section.id.toLowerCase();
         // First get the category ID matching the slug
         const categories = await getCategories(slug);
         
@@ -306,6 +434,11 @@ function DetailContent({ sectionId }: { sectionId: string }) {
           fetchedPosts = await getPosts(undefined, 1, 20);
         }
         setPosts(fetchedPosts);
+
+        // Auto-select first post if this is a SINGLE_PHOTO type module so we show it directly
+        if (section.type === 'SINGLE_PHOTO' && fetchedPosts.length > 0) {
+           setSelectedPost(fetchedPosts[0]);
+        }
       } catch (err) {
         console.error('Error fetching content', err);
       } finally {
@@ -313,27 +446,31 @@ function DetailContent({ sectionId }: { sectionId: string }) {
       }
     };
     fetchContent();
-  }, [sectionId]);
+  }, [section]);
 
   if (selectedPost) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full bg-white/95 backdrop-blur-md p-8 border border-gray-200 relative min-h-[500px] flex flex-col max-h-[70vh] overflow-hidden">
-        <button onClick={() => setSelectedPost(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors z-10 border border-transparent hover:border-gray-200">
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
+        {section.type !== 'SINGLE_PHOTO' && section.type !== 'SINGLE_ARTICLE' && (
+          <button onClick={() => setSelectedPost(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors z-10 border border-transparent hover:border-gray-200">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        )}
         <div className="overflow-y-auto pr-4 customize-scrollbar flex-1">
            <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-4">
              Record ID: {selectedPost.id} | {format(new Date(selectedPost.date), 'yyyy.MM.dd')}
            </div>
-           <h2 className="text-3xl font-black tracking-widest uppercase mb-10 border-b border-gray-200 pb-6 text-gray-900" dangerouslySetInnerHTML={{ __html: selectedPost.title.rendered }} />
+           <h2 className="text-3xl font-black tracking-widest uppercase mb-10 border-b border-gray-200 pb-6 text-gray-900" dangerouslySetInnerHTML={{ __html: section.type === 'SINGLE_PHOTO' ? section.title : selectedPost.title.rendered }} />
            
            {selectedPost._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-             <div className="w-full h-64 mb-8 bg-gray-100 overflow-hidden border border-gray-200">
-               <img src={selectedPost._embedded['wp:featuredmedia'][0].source_url} alt="Featured" className="w-full h-full object-cover" />
+             <div className={`w-full bg-gray-100 overflow-hidden ${section.type === 'SINGLE_PHOTO' ? 'h-auto max-h-[60vh]' : 'h-64 mb-8 border border-gray-200'}`}>
+               <img src={selectedPost._embedded['wp:featuredmedia'][0].source_url} alt="Featured" className={`w-full h-full ${section.type === 'SINGLE_PHOTO' ? 'object-contain' : 'object-cover'}`} />
              </div>
            )}
 
-           <div className="prose prose-sm md:prose-base prose-gray max-w-none tracking-wide" dangerouslySetInnerHTML={{ __html: selectedPost.content.rendered }} />
+           {section.type !== 'SINGLE_PHOTO' && (
+             <div className="prose prose-sm md:prose-base prose-gray max-w-none tracking-wide" dangerouslySetInnerHTML={{ __html: selectedPost.content.rendered }} />
+           )}
         </div>
       </motion.div>
     );
@@ -343,7 +480,7 @@ function DetailContent({ sectionId }: { sectionId: string }) {
     <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="w-full bg-white/80 backdrop-blur-md p-6 md:p-8 border border-gray-200 relative h-[60vh] flex flex-col">
        <div className="absolute top-0 right-0 p-3 text-[9px] text-gray-400 tracking-widest text-right bg-gray-50 border-l border-b border-gray-200 z-10">
           DATA RETRIEVAL <br />
-          {sectionId}-ARCHIVE
+          {section.id}-ARCHIVE
         </div>
        <h3 className="text-xl font-bold tracking-[0.2em] uppercase mb-6 text-gray-900 border-b border-gray-200 pb-4">
          Database Records
@@ -371,7 +508,7 @@ function DetailContent({ sectionId }: { sectionId: string }) {
                </div>
                <div className="flex flex-col justify-center flex-1">
                  <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-1 flex items-center gap-4">
-                   <span>Record {post.id}.{sectionId}</span>
+                   <span>Record {post.id}.{section.id}</span>
                    <span className="text-orange-500 font-mono">{format(new Date(post.date), 'yyyy.MM.dd')}</span>
                  </div>
                  <div className="text-sm font-bold tracking-widest uppercase text-gray-800 group-hover:text-orange-600 transition-colors line-clamp-1" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
