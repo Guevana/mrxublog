@@ -171,99 +171,107 @@ const HubView: FC<HubViewProps> = ({ modules, onSelect }) => {
   );
 }
 
-function SectionCard({ item, onSelect }: { item: any; onSelect: (item: any) => void }) {
+// --- Hub View Components ---
+function SectionCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
+  if (item.type === 'TEXT_LABEL') return <TextLabelCard item={item} />;
+  if (item.type === 'SINGLE_PHOTO') return <SinglePhotoCard item={item} onSelect={onSelect} />;
+  return <DefaultActionCard item={item} onSelect={onSelect} />;
+}
+
+const getSizeClasses = (size?: string) => {
+  switch (size) {
+    case 'medium': return 'w-72 h-40';
+    case 'large': return 'w-96 h-56';
+    case 'small':
+    default: return 'w-56 h-32';
+  }
+};
+
+const textLabelSizeClasses = (size?: string) => {
+  switch (size) {
+    case 'medium': return 'w-72 p-8';
+    case 'large': return 'w-96 p-10';
+    case 'small':
+    default: return 'w-56 p-6';
+  }
+};
+
+const getPhotoWidthClasses = (size?: string) => {
+  switch (size) {
+    case 'medium': return 'w-72';
+    case 'large': return 'w-96';
+    case 'small':
+    default: return 'w-56';
+  }
+};
+
+function TextLabelCard({ item }: { item: AppModule }) {
   const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
+  return (
+    <div className={`bg-white/60 backdrop-blur-md border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center group cursor-default ${textLabelSizeClasses(item.size)}`}>
+       <IconComponent className="w-5 h-5 text-gray-400 mb-3" />
+       <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 mb-2 border-b border-gray-200 pb-2 w-full break-all">
+          {item.title}
+       </div>
+       <div className="text-[9px] tracking-widest leading-relaxed text-gray-600 uppercase break-all">
+          {item.desc}
+       </div>
+    </div>
+  );
+}
 
-  const getSizeClasses = (size?: string) => {
-    switch (size) {
-      case 'medium': return 'w-72 h-40';
-      case 'large': return 'w-96 h-56';
-      case 'small':
-      default: return 'w-56 h-32';
-    }
-  };
+function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
+  const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
+  const [bgImage, setBgImage] = useState<string | null>(item.imageUrl || null);
 
-  const textLabelSizeClasses = (size?: string) => {
-    switch (size) {
-      case 'medium': return 'w-72 p-8';
-      case 'large': return 'w-96 p-10';
-      case 'small':
-      default: return 'w-56 p-6';
-    }
-  };
+  useEffect(() => {
+      if (item.imageUrl) {
+         setBgImage(item.imageUrl);
+         return;
+      }
 
-  const getPhotoWidthClasses = (size?: string) => {
-    switch (size) {
-      case 'medium': return 'w-72';
-      case 'large': return 'w-96';
-      case 'small':
-      default: return 'w-56';
-    }
-  };
+      const fetchPhoto = async () => {
+          try {
+              const cats = await getCategories(item.wpCategorySlug || 'gallery');
+              let catId;
+              if (cats.length > 0) catId = cats[0].id;
+              
+              const posts = await getPosts(catId, 1, 1);
+              if (posts.length > 0) {
+                 const url = posts[0]._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+                 if (url) setBgImage(url);
+              }
+          } catch (e) {console.warn('Cannot show the photo', e);}
+      };
+      fetchPhoto();
+  }, [item.wpCategorySlug, item.imageUrl]);
 
-  if (item.type === 'TEXT_LABEL') {
-    return (
-      <div className={`bg-white/60 backdrop-blur-md border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center group cursor-default ${textLabelSizeClasses(item.size)}`}>
-         <IconComponent className="w-5 h-5 text-gray-400 mb-3" />
-         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 mb-2 border-b border-gray-200 pb-2 w-full break-all">
-            {item.title}
-         </div>
-         <div className="text-[9px] tracking-widest leading-relaxed text-gray-600 uppercase break-all">
-            {item.desc}
-         </div>
-      </div>
-    );
-  }
+  return (
+    <div onClick={() => onSelect(item)} className={`group relative bg-gray-900 border border-gray-300 block overflow-hidden shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-end ${getPhotoWidthClasses(item.size)}`}>
+       {bgImage ? (
+         <img src={bgImage} className="w-full h-auto object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none block" alt="" />
+       ) : (
+         <div className="w-full aspect-[4/3] bg-gray-800" />
+       )}
+       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+       
+       <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
+          <div className="flex items-center gap-2 mb-1 w-full">
+             <IconComponent className="w-3 h-3 text-orange-400 flex-shrink-0" />
+             <div className="text-[12px] font-black tracking-widest uppercase text-white drop-shadow-md truncate">
+               {item.title}
+             </div>
+          </div>
+          <div className="text-[8px] font-bold tracking-[0.2em] uppercase text-gray-300 drop-shadow-sm line-clamp-1 w-full">
+             {item.desc}
+          </div>
+       </div>
+    </div>
+  );
+}
 
-  if (item.type === 'SINGLE_PHOTO') {
-    const [bgImage, setBgImage] = useState<string | null>(item.imageUrl || null);
-
-    useEffect(() => {
-        if (item.imageUrl) {
-           setBgImage(item.imageUrl);
-           return;
-        }
-
-        const fetchPhoto = async () => {
-            try {
-                const cats = await getCategories(item.wpCategorySlug || 'gallery');
-                let catId;
-                if (cats.length > 0) catId = cats[0].id;
-                
-                const posts = await getPosts(catId, 1, 1);
-                if (posts.length > 0) {
-                   const url = posts[0]._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-                   if (url) setBgImage(url);
-                }
-            } catch (e) {console.warn('Cannot show the photo', e);}
-        };
-        fetchPhoto();
-    }, [item.wpCategorySlug, item.imageUrl]);
-
-    return (
-      <div onClick={() => onSelect(item)} className={`group relative bg-gray-900 border border-gray-300 block overflow-hidden shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-end ${getPhotoWidthClasses(item.size)}`}>
-         {bgImage ? (
-           <img src={bgImage} className="w-full h-auto object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none block" alt="" />
-         ) : (
-           <div className="w-full aspect-[4/3] bg-gray-800" />
-         )}
-         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-         
-         <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
-            <div className="flex items-center gap-2 mb-1 w-full">
-               <IconComponent className="w-3 h-3 text-orange-400 flex-shrink-0" />
-               <div className="text-[12px] font-black tracking-widest uppercase text-white drop-shadow-md truncate">
-                 {item.title}
-               </div>
-            </div>
-            <div className="text-[8px] font-bold tracking-[0.2em] uppercase text-gray-300 drop-shadow-sm line-clamp-1 w-full">
-               {item.desc}
-            </div>
-         </div>
-      </div>
-    );
-  }
-
+function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
+  const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
   return (
     <div
       onClick={() => onSelect(item)}
@@ -374,19 +382,21 @@ function DetailView({ section, onBack }: { section: AppModule; onBack: () => voi
   );
 }
 
+// --- Detail View Components ---
 function DetailContent({ section }: { section: AppModule }) {
-  const [posts, setPosts] = useState<WPPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  if (section.type === 'SINGLE_PHOTO') return <SinglePhotoDetail section={section} />;
+  if (section.type === 'SINGLE_ARTICLE') return <SingleArticleDetail section={section} />;
+  return <ArticleListDetail section={section} />;
+}
+
+// Single Photo
+function SinglePhotoDetail({ section }: { section: AppModule }) {
   const [selectedPost, setSelectedPost] = useState<WPPost | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setSelectedPost(null);
-
-    // If SINGLE_PHOTO with an explicit imageUrl, display it directly without fetching
-    if (section.type === 'SINGLE_PHOTO' && section.imageUrl) {
+    if (section.imageUrl) {
         setSelectedPost({
-            id: parseInt(section.id.replace(/\D/g, '') || '1'), // numeric fallback
+            id: parseInt(section.id.replace(/\D/g, '') || '1'),
             date: new Date().toISOString(),
             slug: section.id.toLowerCase(),
             title: { rendered: section.title },
@@ -396,49 +406,81 @@ function DetailContent({ section }: { section: AppModule }) {
               'wp:featuredmedia': [{ source_url: section.imageUrl }]
             }
         } as unknown as WPPost);
-        setLoading(false);
         return;
-    }
-
-    if (section.type === 'SINGLE_ARTICLE' && section.articleId) {
-       const fetchSingleArticle = async () => {
-         try {
-           const post = await getPost(section.articleId!);
-           if (post) {
-              setPosts([post]); // Keep it in posts array
-              setSelectedPost(post);
-           } else {
-              setPosts([]);
-           }
-         } catch (err) {
-           console.error(err);
-         } finally {
-           setLoading(false);
-         }
-       };
-       fetchSingleArticle();
-       return;
     }
 
     const fetchContent = async () => {
       try {
         const slug = section.wpCategorySlug || section.id.toLowerCase();
-        // First get the category ID matching the slug
+        const categories = await getCategories(slug);
+        if (categories.length > 0) {
+          const posts = await getPosts(categories[0].id, 1, 1);
+          if (posts.length > 0) setSelectedPost(posts[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching photo content', err);
+      }
+    };
+    fetchContent();
+  }, [section]);
+
+  if (!selectedPost) return <LoadingDetailView title="Retrieving Image..." />;
+
+  return <PostDetailView post={selectedPost} section={section} />;
+}
+
+// Single Article
+function SingleArticleDetail({ section }: { section: AppModule }) {
+  const [selectedPost, setSelectedPost] = useState<WPPost | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    if (section.articleId) {
+       const fetchSingleArticle = async () => {
+         try {
+           const post = await getPost(section.articleId!);
+           if (post) setSelectedPost(post);
+         } catch (err) {
+           console.error('Error fetching article', err);
+         } finally {
+           setLoading(false);
+         }
+       };
+       fetchSingleArticle();
+    } else {
+       setLoading(false); // No ID specified
+    }
+  }, [section]);
+
+  if (loading) return <LoadingDetailView title="Syncing with DB..." />;
+  if (!selectedPost) return <EmptyDetailView title="No matching record." />;
+
+  return <PostDetailView post={selectedPost} section={section} />;
+}
+
+// Article List
+function ArticleListDetail({ section }: { section: AppModule }) {
+  const [posts, setPosts] = useState<WPPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<WPPost | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setSelectedPost(null);
+
+    const fetchContent = async () => {
+      try {
+        const slug = section.wpCategorySlug || section.id.toLowerCase();
         const categories = await getCategories(slug);
         
         let fetchedPosts: WPPost[] = [];
         if (categories.length > 0) {
-          fetchedPosts = await getPosts(categories[0].id, 1, 20); // fetch up to 20 posts
+          fetchedPosts = await getPosts(categories[0].id, 1, 20);
         } else {
-          // If no specific category found, just fetch latest posts to avoid an empty screen in demo
           fetchedPosts = await getPosts(undefined, 1, 20);
         }
         setPosts(fetchedPosts);
-
-        // Auto-select first post if this is a SINGLE_PHOTO type module so we show it directly
-        if (section.type === 'SINGLE_PHOTO' && fetchedPosts.length > 0) {
-           setSelectedPost(fetchedPosts[0]);
-        }
       } catch (err) {
         console.error('Error fetching content', err);
       } finally {
@@ -449,31 +491,7 @@ function DetailContent({ section }: { section: AppModule }) {
   }, [section]);
 
   if (selectedPost) {
-    return (
-      <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full bg-white/95 backdrop-blur-md p-8 border border-gray-200 relative min-h-[500px] flex flex-col max-h-[70vh] overflow-hidden">
-        {section.type !== 'SINGLE_PHOTO' && section.type !== 'SINGLE_ARTICLE' && (
-          <button onClick={() => setSelectedPost(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors z-10 border border-transparent hover:border-gray-200">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        )}
-        <div className="overflow-y-auto pr-4 customize-scrollbar flex-1">
-           <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-4">
-             Record ID: {selectedPost.id} | {format(new Date(selectedPost.date), 'yyyy.MM.dd')}
-           </div>
-           <h2 className="text-3xl font-black tracking-widest uppercase mb-10 border-b border-gray-200 pb-6 text-gray-900" dangerouslySetInnerHTML={{ __html: section.type === 'SINGLE_PHOTO' ? section.title : selectedPost.title.rendered }} />
-           
-           {selectedPost._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-             <div className={`w-full bg-gray-100 overflow-hidden ${section.type === 'SINGLE_PHOTO' ? 'h-auto max-h-[60vh]' : 'h-64 mb-8 border border-gray-200'}`}>
-               <img src={selectedPost._embedded['wp:featuredmedia'][0].source_url} alt="Featured" className={`w-full h-full ${section.type === 'SINGLE_PHOTO' ? 'object-contain' : 'object-cover'}`} />
-             </div>
-           )}
-
-           {section.type !== 'SINGLE_PHOTO' && (
-             <div className="prose prose-sm md:prose-base prose-gray max-w-none tracking-wide" dangerouslySetInnerHTML={{ __html: selectedPost.content.rendered }} />
-           )}
-        </div>
-      </motion.div>
-    );
+    return <PostDetailView post={selectedPost} section={section} onClose={() => setSelectedPost(null)} />;
   }
 
   return (
@@ -518,6 +536,52 @@ function DetailContent({ section }: { section: AppModule }) {
            ))
          )}
        </div>
+    </motion.div>
+  );
+}
+
+// Shared Post Detail Component
+function PostDetailView({ post, section, onClose }: { post: WPPost; section: AppModule; onClose?: () => void }) {
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full bg-white/95 backdrop-blur-md p-8 border border-gray-200 relative min-h-[500px] flex flex-col max-h-[70vh] overflow-hidden">
+      {onClose && (
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors z-10 border border-transparent hover:border-gray-200">
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+      )}
+      <div className="overflow-y-auto pr-4 customize-scrollbar flex-1">
+         <div className="text-[10px] text-gray-400 tracking-[0.2em] uppercase mb-4">
+           Record ID: {post.id} | {format(new Date(post.date), 'yyyy.MM.dd')}
+         </div>
+         <h2 className="text-3xl font-black tracking-widest uppercase mb-10 border-b border-gray-200 pb-6 text-gray-900" dangerouslySetInnerHTML={{ __html: section.type === 'SINGLE_PHOTO' ? section.title : post.title.rendered }} />
+         
+         {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
+           <div className={`w-full bg-gray-100 overflow-hidden ${section.type === 'SINGLE_PHOTO' ? 'h-auto max-h-[60vh]' : 'h-64 mb-8 border border-gray-200'}`}>
+             <img src={post._embedded['wp:featuredmedia'][0].source_url} alt="Featured" className={`w-full h-full ${section.type === 'SINGLE_PHOTO' ? 'object-contain' : 'object-cover'}`} />
+           </div>
+         )}
+
+         {section.type !== 'SINGLE_PHOTO' && (
+           <div className="prose prose-sm md:prose-base prose-gray max-w-none tracking-wide" dangerouslySetInnerHTML={{ __html: post.content.rendered }} />
+         )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Shared simple states
+function LoadingDetailView({ title }: { title: string }) {
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full bg-white/80 backdrop-blur-md p-6 h-[60vh] flex items-center justify-center border border-gray-200 text-[10px] tracking-widest uppercase text-gray-400 font-bold">
+       {title}
+    </motion.div>
+  );
+}
+
+function EmptyDetailView({ title }: { title: string }) {
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full bg-white/80 backdrop-blur-md p-6 h-[60vh] flex items-center justify-center border border-gray-200 text-[10px] tracking-widest uppercase text-gray-400 font-bold">
+       {title}
     </motion.div>
   );
 }
