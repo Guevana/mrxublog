@@ -63,24 +63,34 @@ VITE_WP_API_URL=https://your-wp-domain.com/wp-json
 
 ## 🔌 WordPress Backend Configuration Guide
 
-To fully utilize this front-end with your own data, your WordPress backend needs specific configurations, particularly a Custom Post Type (CPT) and some custom fields.
+To fully utilize this front-end with your own data, your WordPress backend needs specific configurations, particularly a Custom Post Type (CPT) and specific ACF (Advanced Custom Fields) definitions to drive the Hub application.
 
-### 1. Create the `app_module` Custom Post Type
+### 1. Configure the `.env` URL
+Set your API location in the `.env` file (e.g. `VITE_WP_API_URL=https://your-wp-domain.com/wp-json`). This is routed through `apiClient.ts`.
+
+### 2. Create the `app_module` Custom Post Type
 You need to register a custom post type named `app_module`. Ensure that **"Show in REST API"** is enabled (set `'show_in_rest' => true` in PHP or toggle it ON in plugins like CPT UI).
 
-### 2. Configure Custom Fields (ACF Recommended)
-Using a plugin like [Advanced Custom Fields (ACF)](https://www.advancedcustomfields.com/) or similar, add the following fields to the `app_module` post type. **Make sure these fields are also exposed in the REST API.**
+### 3. Configure Custom Fields (ACF Required)
+Using the [Advanced Custom Fields (ACF)](https://www.advancedcustomfields.com/) plugin, create a Field Group and assign it to the `app_module` Post Type. **Make sure "Show in REST API" is enabled for the Field Group!** The frontend expects these nested under the `acf` object in the REST response.
 
-*   `app_module_type` (Select): `SINGLE_PHOTO`, `SINGLE_ARTICLE`, `ARTICLE_LIST`
-*   `app_module_size` (Select): `small`, `medium`, `large`, `wide`, `tall`, `hero`
-*   `app_module_x` (Number): X-coordinate for the Hub layout (e.g., `-200`, `150`)
-*   `app_module_y` (Number): Y-coordinate for the Hub layout.
-*   `app_module_icon` (Text): Lucide Icon name (e.g., `Image`, `FileText`, `Camera`).
-*   `app_module_image` (Image/URL): The background/hero image. Can also use the native WP Featured Media.
-*   `wp_category_slug` (Text): Required for `ARTICLE_LIST` type to fetch related posts.
-*   `wp_post_id` (Number): Required for `SINGLE_ARTICLE` or `SINGLE_PHOTO` type to link out to a specific WP Post.
+Add the following fields inside the ACF Field Group. **The field names must match exactly:**
 
-### 3. CORS Configuration
+*   **`module_id`** (Text, Optional): A custom string ID for the module. Falls back to generating one via WP Post ID (`M-{id}`) if empty.
+*   **`module_type`** (Select): Drives the UI component used to render the card.
+    *   *Choices:* `ARTICLE_LIST`, `SINGLE_PHOTO`, `TEXT_LABEL`, `SINGLE_ARTICLE` (Defaults to `ARTICLE_LIST`)
+*   **`module_desc`** (Text, Optional): A short description/subtitle shown on the card.
+*   **`module_icon`** (Text, Optional): [Lucide Icon](https://lucide.dev/icons/) name (e.g., `Box`, `Image`, `FileText`, `Camera`). Defaults to `Box`.
+*   **`module_size`** (Select): Determines the CSS grid span/flex sizing of the card.
+    *   *Choices:* `small`, `medium`, `large` (Defaults to `small`)
+*   **`wp_category_slug`** (Text, Optional): Required for the `ARTICLE_LIST` module type. Finds and fetches standard WordPress posts belonging to this category slug.
+*   **`article_id`** (Number/Post Object, Optional): Required for `SINGLE_ARTICLE` or `SINGLE_PHOTO` to link out to a specific standard WordPress Post ID. Setup accepts raw numbers/strings or ACF Post Objects.
+*   **`image_url`** or **`image`** (Image/URL, Optional): Background/hero image for the card. The app intelligently handles:
+    *   Direct URL format (String)
+    *   ACF Image Object (extracts the `url` property)
+    *   ACF Image ID (Number - specifically fetches the source URL via the WP Media REST API endpoint `/wp/v2/media/{id}`)
+
+### 4. CORS Configuration
 If your WordPress is hosted on a different domain than this React app, ensure your WordPress allows Cross-Origin Resource Sharing (CORS). You can add this to your theme's `functions.php`:
 
 ```php
