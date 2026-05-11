@@ -45,23 +45,16 @@ export interface WPModule {
 }
 
 import { AppModule, DEFAULT_MODULES } from '../types';
-
-// Fallback to a valid public demo URL if user hasn't provided one yet
-// Note: Techcrunch won't have the custom CPT 'app_module'. 
-const DEFAULT_WP_API_URL = import.meta.env.VITE_WP_API_URL || 'https://techcrunch.com/wp-json';
+import { ApiClient, apiConfig } from './apiClient';
 
 /**
  * Fetch categories matching a specific slug or all categories
  */
 export async function getCategories(slug?: string): Promise<WPCategory[]> {
   try {
-    const url = new URL(`${DEFAULT_WP_API_URL}/wp/v2/categories`);
-    if (slug) {
-      url.searchParams.append('slug', slug);
-    }
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('API return error');
-    return await response.json();
+    const params: Record<string, string> = {};
+    if (slug) params.slug = slug;
+    return await ApiClient.fetchWithCache<WPCategory[]>('/wp/v2/categories', params);
   } catch (error) {
     console.error('Failed to fetch WordPress categories', error);
     return [];
@@ -73,16 +66,13 @@ export async function getCategories(slug?: string): Promise<WPCategory[]> {
  */
 export async function getPosts(categoryId?: number, page: number = 1, perPage: number = 10): Promise<WPPost[]> {
   try {
-    const url = new URL(`${DEFAULT_WP_API_URL}/wp/v2/posts`);
-    url.searchParams.append('_embed', '1'); // Fetch embedded resources (featured image, etc)
-    url.searchParams.append('page', page.toString());
-    url.searchParams.append('per_page', perPage.toString());
-    if (categoryId) {
-      url.searchParams.append('categories', categoryId.toString());
-    }
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('API return error');
-    return await response.json();
+    const params: Record<string, string> = {
+      _embed: '1',
+      page: page.toString(),
+      per_page: perPage.toString()
+    };
+    if (categoryId) params.categories = categoryId.toString();
+    return await ApiClient.fetchWithCache<WPPost[]>('/wp/v2/posts', params);
   } catch (error) {
     console.error('Failed to fetch WordPress posts', error);
     return [];
@@ -94,11 +84,7 @@ export async function getPosts(categoryId?: number, page: number = 1, perPage: n
  */
 export async function getPost(postId: number): Promise<WPPost | null> {
   try {
-    const url = new URL(`${DEFAULT_WP_API_URL}/wp/v2/posts/${postId}`);
-    url.searchParams.append('_embed', '1');
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('API return error');
-    return await response.json();
+    return await ApiClient.fetchWithCache<WPPost>(`/wp/v2/posts/${postId}`, { _embed: '1' });
   } catch (error) {
     console.error('Failed to fetch WordPress post', error);
     return null;
@@ -111,12 +97,7 @@ export async function getPost(postId: number): Promise<WPPost | null> {
  */
 export async function getAppModules(): Promise<AppModule[]> {
   try {
-    const url = new URL(`${DEFAULT_WP_API_URL}/wp/v2/app_module`);
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error('WP API /app_module returning error (maybe CPT not created)');
-    }
-    const raw: WPModule[] = await response.json();
+    const raw = await ApiClient.fetchWithCache<WPModule[]>('/wp/v2/app_module');
     
     if (!raw || raw.length === 0) {
       console.warn('No modules returned from WP, using defaults.');
@@ -136,8 +117,7 @@ export async function getAppModules(): Promise<AppModule[]> {
         parsedImageUrl = rawImg.url as string;
       } else if (typeof rawImg === 'number') {
         try {
-          const mediaUrl = new URL(`${DEFAULT_WP_API_URL}/wp/v2/media/${rawImg}`);
-          const mediaRes = await fetch(mediaUrl.toString());
+          const mediaRes = await fetch(`${apiConfig.getBaseUrl()}/wp/v2/media/${rawImg}`);
           if (mediaRes.ok) {
             const mediaData = await mediaRes.json();
             parsedImageUrl = mediaData.source_url;

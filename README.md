@@ -1,92 +1,79 @@
-# mrxublog - Personal Lab Interface
+# Headless WP React Hub App
 
-A futuristic, sci-fi/lab-themed personal portfolio and blog interface built with React, Vite, and Tailwind CSS. The project functions as a modern frontend for a headless WordPress backend, utilizing dynamic animations and a unique "node-based" spatial hub navigation.
+A modern, high-performance web application serving as a highly interactive front-end for a Headless WordPress backend. It features a dynamic multi-node layout (Hub), animated transitions, and custom renderers for different content types (Single Photo, Single Article, Article List). 
 
-## ✨ Features
+## 🚀 Key Features
 
-- **Sci-Fi / Terminal Aesthetic:** Beautifully crafted UI resembling a high-tech terminal, "Analysis OS", or personal laboratory tracking system.
-- **Node-Based Spatial Navigation:** A draggable, scalable hub view where different sections (Articles, Gallery, Projects) are represented as scattered "nodes" connected to a central core.
-- **Headless WordPress Integration:** Dynamically fetches data, categories, and custom application modules (`app_module` Custom Post Type) from a WordPress REST API.
-- **Smooth Animations:** Powered by `motion/react` (Framer Motion) for intricate transition sequences, layout animations, and an immersive initial "Login" sequence.
-- **Responsive Layout:** Works flawlessly across mobile devices and desktop wide-screens.
+*   **Dynamic Data Modules:** Native integration with Headless WordPress resolving a custom `app_module` post type and standard `posts`/`categories`.
+*   **Advanced State Management:** Global state powered by **Zustand**, driving application lifecycle and module pre-fetching.
+*   **Smart Data Fetching:** Built-in API Client featuring request deduplication and TTL memory caching to drastically reduce backend load.
+*   **Progressive UI:** Custom `LazyImage` rendering with skeleton loading states, fallback icons, and smooth reveal animations.
+*   **Immersive Interactions:** Powered by `motion/react`, featuring complex spring-physics node layouts, seamless route transitions, and hover-triggered micro-interactions.
+*   **Brutalism-Inspired Design:** Clean, typographic-driven user interface with distinct geometric boundaries and high-contrast elements.
 
 ## 🛠 Tech Stack
 
-- **Framework:** [React 19](https://react.dev/)
-- **Build Tool:** [Vite](https://vitejs.dev/)
-- **Language:** [TypeScript](https://www.typescriptlang.org/)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animations:** [Motion](https://motion.dev/)
-- **Icons:** [Lucide React](https://lucide.dev/)
-- **Data & API:** Fetch API connected to WordPress REST API
+*   **Framework:** React 18+ (Vite)
+*   **Language:** TypeScript
+*   **Styling:** Tailwind CSS + Lucide React (Icons)
+*   **Animations:** Motion (`motion/react`)
+*   **State Management:** Zustand
+*   **Routing:** React Router v6
+*   **Backend:** WordPress REST API
 
-## 📂 Project Structure
+## 📂 Architecture Overview
+
+The application follows a modular, scalable directory structure:
 
 ```text
-├── src/
-│   ├── components/
-│   │   ├── LoginSequence.tsx  # Initial sci-fi "boot up" & authorization screen
-│   │   └── MainInterface.tsx  # The core workspace, including HubView and Detail nodes
-│   ├── services/
-│   │   └── wpService.ts       # WordPress REST API fetch logic (Categories, Posts, Modules)
-│   ├── types.ts               # Global TypeScript definitions & interfaces
-│   ├── App.tsx                # Main application entry point (Router & State)
-│   ├── main.tsx               # React DOM rendering
-│   └── index.css              # Global Tailwind configuration & fonts
-├── .env.example               # Environment variables template
-├── package.json               # Project dependencies and npm scripts
-└── vite.config.ts             # Vite configuration
+src/
+├── components/
+│   ├── detail/          # Detail view containers & specific renderers
+│   ├── hub/             # Main dashboard (Hub) and nested cards
+│   ├── layout/          # Global layout wrappers
+│   └── shared/          # Reusable components (e.g. , LazyImage, LoadingViews)
+├── hooks/               # Custom React hooks (useAppModules, useSinglePhoto, etc.)
+├── services/            # API integration & business logic
+│   ├── apiClient.ts     # Request deduplication and caching engine
+│   └── wpService.ts     # Specific WordPress REST API endpoints
+├── store/               # Global state
+│   └── appStore.ts      # Zustand global store configuration
+├── types.ts             # Shared TypeScript interfaces for WP schema
+├── main.tsx             # Application entry point
+└── App.tsx              # Root component & Route definitions
 ```
 
-## 🚀 Getting Started
+## 🧠 Data Flow & Caching
 
-### Prerequisites
+With the introduction of the isolated `ApiClient` layer:
+1. Components utilize custom domain hooks (`useAppModules`, `useArticleList`).
+2. Domain hooks defer to `appStore` (Zustand) for global persistent state, or call `wpService` directly for ephemeral data.
+3. `wpService` routes all requests through `ApiClient.fetchWithCache()`.
+4. `ApiClient` maintains a fast in-memory map. Redundant requests firing simultaneously share the same Promise. Resolved data stays warm for a 5-minute TTL.
 
-Ensure you have Node.js (v18+ recommended) and `npm`, `yarn`, or `pnpm` installed.
+## ⚙️ Environment Configuration
 
-### Installation
+Ensure your environment defines the target WordPress instance. Rename or create a `.env` file at the root.
 
-1. **Clone the repository and install dependencies:**
-   ```bash
-   npm install
-   ```
+```env
+# URL to your WordPress REST API endpoint
+VITE_WP_API_URL=https://your-wp-domain.com/wp-json
+```
+*(Defaults to the TechCrunch public API for demonstration purposes if omitted, though custom post types will fall back to mocked local data).*
 
-2. **Configure Environment Variables:**
-   Copy the `.env.example` file to `.env` and update the WordPress API URL point to your backend:
-   ```bash
-   VITE_WP_API_URL=https://your-wordpress-site.com/wp-json
-   ```
-   *(If not provided, the app will fall back to a default demonstration API).*
+## 🏃 Getting Started
 
-3. **Start the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   The application will be available at `http://localhost:3000`.
-
-### Building for Production
-
-To create a production build:
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
 npm run build
 ```
-Files will be exported to the `/dist` directory.
 
-## 🔌 WordPress Backend Setup
+## 📝 Design Philosophy
 
-To get the most out of this frontend, your headeless WordPress installation should be configured with:
-
-1. **Custom Post Type:** Needs an `app_module` Custom Post Type to define the Hub Nodes.
-2. **Advanced Custom Fields (ACF):**
-   - `module_id` (Text)
-   - `module_type` (Select: `ARTICLE_LIST`, `SINGLE_PHOTO`, `TEXT_LABEL`, `SINGLE_ARTICLE`)
-   - `module_desc` (Text)
-   - `module_icon` (Text - Lucide Icon name)
-   - `wp_category_slug` (Text - maps the node to a WordPress category)
-   - `module_size` (Select: `small`, `medium`, `large`)
-   - `module_color` (Text - Optional hex color for the module theme, e.g., `#3b82f6`)
-3. **Categories:** Create standard WordPress categories like `gallery`, `projects`, `articles` that match the configurations in your modules.
-
-## 📄 License
-
-This project is private and intended for personal portfolio use.
+Every UI element is built without reliance on native browser defaults. Spacing, typography (Inter/JetBrains Mono), and visual hierarchies are strictly controlled through Tailwind utility classes to ensure a unified "Tech/Editorial Dashboard" vibe.
