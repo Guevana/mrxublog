@@ -84,6 +84,7 @@ To get the most out of this frontend, your headeless WordPress installation shou
    - `module_icon` (Text - Lucide Icon name)
    - `wp_category_slug` (Text - maps the node to a WordPress category)
    - `module_size` (Select: `small`, `medium`, `large`)
+   - `module_color` (Text - Optional hex color for the module theme, e.g., `#3b82f6`)
 3. **Categories:** Create standard WordPress categories like `gallery`, `projects`, `articles` that match the configurations in your modules.
 
 ## 📄 License

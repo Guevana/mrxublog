@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, FC } from 'react';
+import { useState, useMemo, useRef, useEffect, FC, CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, User, Briefcase, Image as ImageIcon, Mail, ArrowLeft, Terminal, X, Box, Menu, ExternalLink } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -94,16 +94,37 @@ interface HubViewProps {
 const HubView: FC<HubViewProps> = ({ modules, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Generate stable random points in a circular pattern around the core
+  // Generate stable random points in circular rings around the core to prevent overlapping
   const layoutNodes = useMemo(() => {
+    let currentRing = 0;
+    let itemsInRing = 5;
+    let itemsPlaced = 0;
+
     return modules.map((module, idx) => {
-      // 0 to 2*PI, distributed smoothly with slight random variation
-      const baseAngle = (idx / modules.length) * Math.PI * 2;
-      const angleOffset = (pseudoRandom(idx) - 0.5) * 0.8; 
-      const angle = baseAngle + angleOffset;
+      // Move to the next ring if the current one is full
+      if (idx >= itemsPlaced + itemsInRing) {
+        itemsPlaced += itemsInRing;
+        currentRing++;
+        itemsInRing = (currentRing + 1) * 5; // e.g. 5, 10, 15, 20
+      }
       
-      // Radius scattered between 280 and 480
-      const radius = 280 + pseudoRandom(idx * 2) * 200;
+      const indexInRing = idx - itemsPlaced;
+      const totalInThisRing = Math.min(itemsInRing, modules.length - itemsPlaced);
+      
+      // Base angle based on position in current ring
+      const baseAngle = (indexInRing / totalInThisRing) * Math.PI * 2;
+      
+      // Stagger odd rings to prevent linear alignment of nodes
+      const angleShift = (currentRing % 2 === 1) ? (Math.PI / totalInThisRing) : 0;
+      
+      // Add a slight deterministic random jitter
+      const angleOffset = (pseudoRandom(idx) - 0.5) * 0.3; 
+      const angle = baseAngle + angleShift + angleOffset;
+      
+      // Base radius expands with each ring (e.g., 320, 580, 840...)
+      const baseRadius = 320 + currentRing * 260;
+      const radiusOffset = (pseudoRandom(idx * 2) - 0.5) * 60;
+      const radius = baseRadius + radiusOffset;
 
       return {
         ...module,
@@ -165,7 +186,7 @@ const HubView: FC<HubViewProps> = ({ modules, onSelect }) => {
         {layoutNodes.map((node, i) => (
           <motion.div 
             key={node.id}
-            className="absolute top-1/2 left-1/2 z-20 pointer-events-auto"
+            className="absolute top-1/2 left-1/2 z-20 hover:z-50 focus-within:z-50 pointer-events-auto"
             initial={{ x: "-50%", y: "-50%", opacity: 0 }}
             animate={{ x: `calc(-50% + ${node.x}px)`, y: `calc(-50% + ${node.y}px)`, opacity: 1 }}
             transition={{ delay: 0.05 * i, type: 'spring', stiffness: 60 }}
@@ -264,7 +285,7 @@ function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect: (item:
        
        <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
           <div className="flex items-center gap-2 mb-1 w-full">
-             <IconComponent className="w-3 h-3 text-orange-400 flex-shrink-0" />
+             <IconComponent className={`w-3 h-3 flex-shrink-0 ${!item.color ? 'text-orange-400' : ''}`} style={item.color ? { color: item.color } : {}} />
              <div className="text-[12px] font-black tracking-widest uppercase text-white drop-shadow-md truncate">
                {item.title}
              </div>
@@ -279,11 +300,19 @@ function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect: (item:
 
 function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
   const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
+  
+  // Custom styles if color is provided
+  const customBgStyle = item.color ? { backgroundColor: item.color } : {};
+  const customBorderColorStyle = item.color ? { borderColor: item.color } : {};
+  const customShadowStyle = item.color ? { 
+    boxShadow: `0 10px 15px -3px ${item.color}40, 0 4px 6px -4px ${item.color}40`,
+  } as CSSProperties : {};
+
   return (
     <div
       onClick={() => onSelect(item)}
-      className={`group relative bg-white/60 backdrop-blur-md border border-gray-200 block overflow-hidden shadow-sm cursor-pointer hover:shadow-orange-500/10 hover:shadow-lg transition-shadow duration-300 ${getSizeClasses(item.size)}`}
-      style={{ isolation: 'isolate' }}
+      className={`group relative bg-white/60 backdrop-blur-md border border-gray-200 block overflow-hidden shadow-sm cursor-pointer ${!item.color ? 'hover:shadow-orange-500/10 hover:shadow-lg' : 'hover:-translate-y-1'} transition-all duration-300 ${getSizeClasses(item.size)}`}
+      style={{ isolation: 'isolate', ...(item.color ? customShadowStyle : {}) }}
     >
       {/* Base Content (Default color) */}
       <div className="absolute inset-0 p-6 flex flex-col items-start bg-transparent transition-transform duration-300 ease-linear group-hover:scale-[1.03] z-10">
@@ -299,15 +328,15 @@ function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelect: (ite
       </div>
 
       {/* Duplicate Inverted Content clipped by width acting as scanline */}
-      <div className="absolute top-0 left-0 h-full bg-orange-500 z-20 overflow-hidden w-0 transition-[width] duration-[400ms] ease-linear group-hover:w-full">
+      <div className={`absolute top-0 left-0 h-full ${!item.color ? 'bg-orange-500' : ''} z-20 overflow-hidden w-0 transition-[width] duration-[400ms] ease-linear group-hover:w-full`} style={customBgStyle}>
         <div className={`p-6 flex flex-col items-start relative transition-transform duration-300 ease-linear group-hover:scale-[1.03] ${getSizeClasses(item.size)}`}>
-          <div className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center border-l border-b border-orange-400">
+          <div className={`absolute top-0 right-0 w-10 h-10 flex items-center justify-center border-l border-b ${!item.color ? 'border-orange-400' : ''}`} style={customBorderColorStyle}>
              <IconComponent className="w-4 h-4 text-white" />
           </div>
           <div className="text-4xl font-black tracking-tighter mb-3 text-white">
             {item.id}
           </div>
-          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-orange-100">
+          <div className={`text-[10px] font-bold tracking-[0.2em] uppercase ${!item.color ? 'text-orange-100' : 'text-white/90'}`}>
             {item.title}
           </div>
         </div>

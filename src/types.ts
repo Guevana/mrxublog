@@ -14,13 +14,14 @@ export interface AppModule {
   imageUrl?: string; // Direct image URL configuration for SINGLE_PHOTO
   size?: 'small' | 'medium' | 'large';
   articleId?: number; // Specific article ID for SINGLE_ARTICLE
+  color?: string; // Optional custom color theme (e.g. '#3b82f6')
 }
 
 export const DEFAULT_MODULES: AppModule[] = [
-  { id: 'ABT', type: 'ARTICLE_LIST', title: 'ABOUT SECTION', desc: 'PERSONAL INFORMATION & BACKGROUND', iconName: 'User', wpCategorySlug: 'about' },
-  { id: 'ART', type: 'ARTICLE_LIST', title: 'ARTICLES SECTION', desc: 'TECHNICAL & CREATIVE WRITINGS', iconName: 'FileText', wpCategorySlug: 'articles' },
-  { id: 'PRJ', type: 'ARTICLE_LIST', title: 'PROJECTS SECTION', desc: 'DEVELOPMENT & RESEARCH INITIATIVES', iconName: 'Briefcase', wpCategorySlug: 'projects' },
+  { id: 'ABT', type: 'ARTICLE_LIST', title: 'ABOUT SECTION', desc: 'PERSONAL INFORMATION & BACKGROUND', iconName: 'User', wpCategorySlug: 'about', color: '#10b981' },
+  { id: 'ART', type: 'ARTICLE_LIST', title: 'ARTICLES SECTION', desc: 'TECHNICAL & CREATIVE WRITINGS', iconName: 'FileText', wpCategorySlug: 'articles', color: '#3b82f6' },
+  { id: 'PRJ', type: 'ARTICLE_LIST', title: 'PROJECTS SECTION', desc: 'DEVELOPMENT & RESEARCH INITIATIVES', iconName: 'Briefcase', wpCategorySlug: 'projects', color: '#8b5cf6' },
   { id: 'GLR', type: 'SINGLE_PHOTO', title: 'GALLERY', desc: 'VISUAL ARTS & PHOTOGRAPHY', iconName: 'Image', wpCategorySlug: 'gallery' },
   { id: 'SYS', type: 'TEXT_LABEL', title: 'SYSTEM STATUS', desc: 'ALL SYSTEMS NOMINAL. SECURE CONNECTION ESTABLISHED.', iconName: 'Terminal' },
-  { id: 'CNT', type: 'ARTICLE_LIST', title: 'CONTACT SECTION', desc: 'COMMUNICATION CHANNELS', iconName: 'Mail', wpCategorySlug: 'contact' },
+  { id: 'CNT', type: 'ARTICLE_LIST', title: 'CONTACT SECTION', desc: 'COMMUNICATION CHANNELS', iconName: 'Mail', wpCategorySlug: 'contact', color: '#ef4444' },
 ];
