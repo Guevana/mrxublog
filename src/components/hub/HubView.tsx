@@ -69,6 +69,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
       ref={containerRef}
     >
       <motion.div 
+        key="hub-canvas"
         drag 
         dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
         dragElastic={0.1}
