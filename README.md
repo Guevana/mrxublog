@@ -61,6 +61,41 @@ VITE_WP_API_URL=https://your-wp-domain.com/wp-json
 ```
 *(Defaults to the TechCrunch public API for demonstration purposes if omitted, though custom post types will fall back to mocked local data).*
 
+## 🔌 WordPress Backend Configuration Guide
+
+To fully utilize this front-end with your own data, your WordPress backend needs specific configurations, particularly a Custom Post Type (CPT) and some custom fields.
+
+### 1. Create the `app_module` Custom Post Type
+You need to register a custom post type named `app_module`. Ensure that **"Show in REST API"** is enabled (set `'show_in_rest' => true` in PHP or toggle it ON in plugins like CPT UI).
+
+### 2. Configure Custom Fields (ACF Recommended)
+Using a plugin like [Advanced Custom Fields (ACF)](https://www.advancedcustomfields.com/) or similar, add the following fields to the `app_module` post type. **Make sure these fields are also exposed in the REST API.**
+
+*   `app_module_type` (Select): `SINGLE_PHOTO`, `SINGLE_ARTICLE`, `ARTICLE_LIST`
+*   `app_module_size` (Select): `small`, `medium`, `large`, `wide`, `tall`, `hero`
+*   `app_module_x` (Number): X-coordinate for the Hub layout (e.g., `-200`, `150`)
+*   `app_module_y` (Number): Y-coordinate for the Hub layout.
+*   `app_module_icon` (Text): Lucide Icon name (e.g., `Image`, `FileText`, `Camera`).
+*   `app_module_image` (Image/URL): The background/hero image. Can also use the native WP Featured Media.
+*   `wp_category_slug` (Text): Required for `ARTICLE_LIST` type to fetch related posts.
+*   `wp_post_id` (Number): Required for `SINGLE_ARTICLE` or `SINGLE_PHOTO` type to link out to a specific WP Post.
+
+### 3. CORS Configuration
+If your WordPress is hosted on a different domain than this React app, ensure your WordPress allows Cross-Origin Resource Sharing (CORS). You can add this to your theme's `functions.php`:
+
+```php
+add_action('rest_api_init', function () {
+    remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+    add_filter('rest_pre_serve_request', function ($value) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Credentials: true');
+        return $value;
+    });
+}, 15);
+```
+*(Note: For production, replace `*` with your actual frontend domain URL for better security).*
+
 ## 🏃 Getting Started
 
 ```bash
