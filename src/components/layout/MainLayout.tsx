@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, User, ExternalLink } from 'lucide-react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useOutlet } from 'react-router-dom';
+import React from 'react';
 
 export function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const outlet = useOutlet();
 
   return (
     <motion.div 
@@ -22,7 +24,7 @@ export function MainLayout() {
       
       <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none overflow-hidden">
         <AnimatePresence mode="wait">
-          <Outlet key={location.pathname} />
+          {outlet && React.cloneElement(outlet, { key: location.pathname })}
         </AnimatePresence>
       </div>
 

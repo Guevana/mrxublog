@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,7 @@ export function HubViewContainer() {
 function HubView({ modules }: { modules: AppModule[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [instanceId] = useState(() => Math.random().toString(36).slice(2, 9));
 
   const layoutNodes = useMemo(() => {
     let currentRing = 0;
@@ -60,7 +61,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
 
   return (
     <motion.div 
-      key="hub"
+      key={`hub-${instanceId}`}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
@@ -69,7 +70,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
       ref={containerRef}
     >
       <motion.div 
-        key="hub-canvas"
+        key={`hub-canvas-${instanceId}`}
         drag 
         dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
         dragElastic={0.1}
