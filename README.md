@@ -83,6 +83,7 @@ Add the following fields inside the ACF Field Group. **The field names must matc
 *   **`module_icon`** (Text, Optional): [Lucide Icon](https://lucide.dev/icons/) name (e.g., `Box`, `Image`, `FileText`, `Camera`). Defaults to `Box`.
 *   **`module_size`** (Select): Determines the CSS grid span/flex sizing of the card.
     *   *Choices:* `small`, `medium`, `large` (Defaults to `small`)
+*   **`module_color`** or **`color`** (Text/Color Picker, Optional): Specifies a custom color theme or background color for the module card.
 *   **`wp_category_slug`** (Text, Optional): Required for the `ARTICLE_LIST` module type. Finds and fetches standard WordPress posts belonging to this category slug.
 *   **`article_id`** (Number/Post Object, Optional): Required for `SINGLE_ARTICLE` or `SINGLE_PHOTO` to link out to a specific standard WordPress Post ID. Setup accepts raw numbers/strings or ACF Post Objects.
 *   **`image_url`** or **`image`** (Image/URL, Optional): Background/hero image for the card. The app intelligently handles:

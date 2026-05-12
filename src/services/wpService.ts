@@ -41,6 +41,8 @@ export interface WPModule {
     image?: string | number | { url: string };
     module_size?: 'small' | 'medium' | 'large';
     article_id?: number | string | { ID: number };
+    module_color?: string;
+    color?: string;
   };
 }
 
@@ -146,7 +148,8 @@ let parsedArticleId: number | undefined;
         wpCategorySlug: m.acf?.wp_category_slug || '',
         imageUrl: parsedImageUrl || undefined,
         size: m.acf?.module_size || 'small',
-        articleId: parsedArticleId
+        articleId: parsedArticleId,
+        color: m.acf?.module_color || m.acf?.color || undefined
       };
     }));
 
