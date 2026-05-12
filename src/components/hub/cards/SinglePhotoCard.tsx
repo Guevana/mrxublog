@@ -4,6 +4,7 @@ import { AppModule } from '../../../types';
 import { getCategories, getPosts } from '../../../services/wpService';
 import { getPhotoWidthClasses } from './utils';
 import { LazyImage } from '../../shared/LazyImage';
+import { AdaptiveText } from '../../shared/AdaptiveText';
 
 export function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
   const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
@@ -41,14 +42,18 @@ export function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect:
        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
        
        <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
-          <div className="flex items-center gap-2 mb-1 w-full">
+          <div className="flex items-center gap-2 mb-1 w-full text-white">
              <IconComponent className={`w-3 h-3 flex-shrink-0 ${!item.color ? 'text-orange-400' : ''}`} style={item.color ? { color: item.color } : {}} />
-             <div className="text-[12px] font-black tracking-widest uppercase text-white drop-shadow-md truncate">
-               {item.title}
+             <div className="flex-1 w-full">
+               <AdaptiveText maxFontSize={12} className="font-black tracking-widest uppercase drop-shadow-md w-full">
+                 {item.title}
+               </AdaptiveText>
              </div>
           </div>
-          <div className="text-[8px] font-bold tracking-[0.2em] uppercase text-gray-300 drop-shadow-sm line-clamp-1 w-full">
-             {item.desc}
+          <div className="w-full mt-1">
+             <AdaptiveText maxFontSize={8} className="font-bold tracking-[0.2em] uppercase text-gray-300 drop-shadow-sm w-full">
+                {item.desc || ''}
+             </AdaptiveText>
           </div>
        </div>
     </div>

@@ -2,6 +2,7 @@ import { CSSProperties } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { AppModule } from '../../../types';
 import { getSizeClasses } from './utils';
+import { AdaptiveText } from '../../shared/AdaptiveText';
 
 export function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
   const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
@@ -22,11 +23,11 @@ export function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelec
         <div className="absolute top-0 right-0 w-10 h-10 bg-gray-50 flex items-center justify-center border-l border-b border-gray-200">
            <IconComponent className="w-4 h-4 text-gray-400" />
         </div>
-        <div className="text-4xl font-black tracking-tighter mb-3 text-gray-900">
-          {item.id}
+        <div className="mb-3 text-gray-900 w-full pr-8">
+           <AdaptiveText maxFontSize={36} className="font-black tracking-tighter w-full">{item.id}</AdaptiveText>
         </div>
-        <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500">
-          {item.title}
+        <div className="w-full flex-1">
+           <AdaptiveText maxFontSize={10} className="font-bold tracking-[0.2em] uppercase text-gray-500 w-full">{item.title}</AdaptiveText>
         </div>
       </div>
 
@@ -35,11 +36,11 @@ export function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelec
           <div className={`absolute top-0 right-0 w-10 h-10 flex items-center justify-center border-l border-b ${!item.color ? 'border-orange-400' : ''}`} style={customBorderColorStyle}>
              <IconComponent className="w-4 h-4 text-white" />
           </div>
-          <div className="text-4xl font-black tracking-tighter mb-3 text-white">
-            {item.id}
+          <div className="mb-3 text-white w-full pr-8">
+             <AdaptiveText maxFontSize={36} className="font-black tracking-tighter w-full">{item.id}</AdaptiveText>
           </div>
-          <div className={`text-[10px] font-bold tracking-[0.2em] uppercase ${!item.color ? 'text-orange-100' : 'text-white/90'}`}>
-            {item.title}
+          <div className="w-full flex-1">
+             <AdaptiveText maxFontSize={10} className={`font-bold tracking-[0.2em] uppercase w-full ${!item.color ? 'text-orange-100' : 'text-white/90'}`}>{item.title}</AdaptiveText>
           </div>
         </div>
       </div>

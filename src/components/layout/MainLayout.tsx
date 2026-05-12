@@ -64,15 +64,11 @@ function Sidebar({ onClose }: { onClose: () => void }) {
   };
 
   const aboutLinks = [
-    { title: '个人简介 / Profile', url: '#' },
-    { title: '项目经历 / Projects', url: '#' },
-    { title: '联系方式 / Contact', url: '#' }
+    { title: 'Github主页 / Github', url: 'https://github.com/Guevana' }
   ];
 
   const friendLinks = [
-    { title: 'React Documentation', url: 'https://react.dev/' },
-    { title: 'Tailwind CSS', url: 'https://tailwindcss.com/' },
-    { title: 'Vitejs', url: 'https://vitejs.dev/' }
+    { title: 'KMS的乌托邦', url: 'https://www.h2d954063.nyat.app:43086/pixel-blog/' }
   ];
 
   return (
@@ -191,6 +187,9 @@ function Footer() {
            Secure Connection Active
         </span>
       </div>
+      <a href="https://beian.miit.gov.cn/" className="text-gray-400 hover:text-orange-500 transition-colors">
+        备案号:渝ICP备2024044754号-1
+        </a>
       <div className="flex flex-col items-end gap-1">
         <div className="w-32 h-px bg-gray-300 mb-1"></div>
         <span className="text-gray-400">MONITORING SYSTEMS ... ONLINE</span>
