@@ -8,19 +8,19 @@ export function LoginSequence({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const sequence = async () => {
       // Step 1: Initial pause
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 150));
       setStep(1); // ACCESS PERMISSION REQUIRED
       
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 300));
       setStep(2); // Logo + Text
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 600));
       setStep(3); // Circle + Authorized
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 700));
       setStep(4); // Welcome
       
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 300));
       onComplete();
     };
     sequence();
@@ -55,13 +55,13 @@ export function LoginSequence({ onComplete }: { onComplete: () => void }) {
             </div>
             
             <div className="flex flex-col gap-4 text-[10px] md:text-xs tracking-[0.2em] uppercase text-gray-600">
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }}>
                 <span className="text-gray-900 mr-2">- ID CONFIRMED:</span> ADMINISTRATOR
               </motion.div>
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
                 <span className="text-gray-900 mr-2">- REQUEST RECEIVED</span>
               </motion.div>
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
                 <span className="text-gray-900 mr-2">- START PROCESSING...</span>
               </motion.div>
             </div>
@@ -89,7 +89,7 @@ export function LoginSequence({ onComplete }: { onComplete: () => void }) {
                 strokeWidth="0.5"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
               />
               <motion.circle
                 cx="50"
@@ -100,10 +100,10 @@ export function LoginSequence({ onComplete }: { onComplete: () => void }) {
                 strokeWidth="0.5"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.6, delay: 0.3, ease: "easeInOut" }}
+                transition={{ duration: 0.4, delay: 0.2, ease: "easeInOut" }}
               />
               {/* Decorative inner dots */}
-              <motion.circle cx="50" cy="15" r="1.5" fill="#ff6600" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} />
+              <motion.circle cx="50" cy="15" r="1.5" fill="#ff6600" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} />
               <motion.circle cx="85" cy="50" r="1.5" fill="#ff6600" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} />
               <motion.circle cx="50" cy="85" r="1.5" fill="#ff6600" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} />
               <motion.circle cx="15" cy="50" r="1.5" fill="#ff6600" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} />

@@ -16,13 +16,9 @@ export function MainLayout() {
       transition={{ duration: 1 }}
       className="fixed inset-0 bg-[#f5f5f5] text-[#111] font-sans bg-grid selection:bg-orange-500 selection:text-white"
     >
-      {/* Background abstract lines */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-[100vw] max-h-[800px] bg-gray-200 -z-10 rotate-45 hidden md:block pointer-events-none"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-[100vw] max-h-[800px] bg-gray-200 -z-10 -rotate-45 hidden md:block pointer-events-none"></div>
-
       <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
-      <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 z-10 flex flex-col justify-center items-center pointer-events-none overflow-hidden">
         <AnimatePresence mode="wait">
           {outlet && React.cloneElement(outlet, { key: location.pathname })}
         </AnimatePresence>

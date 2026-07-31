@@ -15,7 +15,7 @@ export function DefaultActionCard({ item, onSelect }: { item: AppModule; onSelec
   return (
     <div
       onClick={() => onSelect(item)}
-      className={`group relative bg-white/60 backdrop-blur-md border border-gray-200 block overflow-hidden shadow-sm cursor-pointer ${!item.color ? 'hover:shadow-orange-500/10 hover:shadow-lg' : 'hover:-translate-y-1'} transition-all duration-300 ${getSizeClasses(item.size)}`}
+      className={`group relative bg-white border border-gray-200 block overflow-hidden shadow-sm cursor-pointer ${!item.color ? 'hover:shadow-orange-500/10 hover:shadow-lg' : 'hover:-translate-y-1'} transition-all duration-300 ${getSizeClasses(item.size)}`}
       style={{ isolation: 'isolate', ...(item.color ? customShadowStyle : {}) }}
     >
       <div className="absolute inset-0 p-6 flex flex-col items-start bg-transparent transition-transform duration-300 ease-linear group-hover:scale-[1.03] z-10">
