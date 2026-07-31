@@ -1,10 +1,16 @@
+import { lazy, Suspense } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppModule } from '../../types';
 import { LoadingView, EmptyDetailView } from '../shared/LoadingViews';
 import { useModuleDetail } from '../../hooks/useModuleDetail';
-import { DetailContent } from './DetailContent';
+
+// Defer the heavy content renderers (article HTML, photo detail) until a
+// module is actually opened.
+const DetailContent = lazy(() =>
+  import('./DetailContent').then(m => ({ default: m.DetailContent })),
+);
 
 export function DetailViewContainer() {
   const { id } = useParams<{ id: string }>();
@@ -63,7 +69,9 @@ function DetailView({ section, onBack }: { section: AppModule; onBack: () => voi
       </div>
 
       <div className="w-full md:w-2/3 flex flex-col justify-center relative">
-        <DetailContent section={section} />
+        <Suspense fallback={<LoadingView />}>
+          <DetailContent section={section} />
+        </Suspense>
       </div>
     </motion.div>
   );

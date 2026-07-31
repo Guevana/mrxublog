@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import * as LucideIcons from 'lucide-react';
 import { AppModule } from '../../../types';
 import { getCategories, getPosts } from '../../../services/wpService';
 import { getPhotoWidthClasses } from './utils';
 import { LazyImage } from '../../shared/LazyImage';
 import { AdaptiveText } from '../../shared/AdaptiveText';
+import { DynamicIcon } from '../../shared/DynamicIcon';
 
 export function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect: (item: AppModule) => void }) {
-  const IconComponent = (LucideIcons as any)[item.iconName] || LucideIcons.Box;
   const [bgImage, setBgImage] = useState<string | null>(item.imageUrl || null);
 
   useEffect(() => {
@@ -43,7 +42,7 @@ export function SinglePhotoCard({ item, onSelect }: { item: AppModule; onSelect:
        
        <div className="absolute inset-0 p-4 flex flex-col items-start justify-end z-10 pointer-events-none">
           <div className="flex items-center gap-2 mb-1 w-full text-white">
-             <IconComponent className={`w-3 h-3 flex-shrink-0 ${!item.color ? 'text-orange-400' : ''}`} style={item.color ? { color: item.color } : {}} />
+             <DynamicIcon name={item.iconName} className={`w-3 h-3 flex-shrink-0 ${!item.color ? 'text-orange-400' : ''}`} style={item.color ? { color: item.color } : undefined} />
              <div className="flex-1 w-full">
                <AdaptiveText maxFontSize={12} className="font-black tracking-widest uppercase drop-shadow-md w-full">
                  {item.title}
