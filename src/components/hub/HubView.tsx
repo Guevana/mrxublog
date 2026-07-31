@@ -71,6 +71,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
         ...module,
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
+        radius,
       };
     });
   }, [modules]);
@@ -80,7 +81,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
     navigate(`/module/${module.id}`);
   };
 
-  // Reset camera to center at the given zoom level.
+  // Reset camera to center at the given zoom level (only used by reset button).
   const resetView = useCallback((targetScale?: number) => {
     const s = targetScale ?? scale.get();
     // Pan x/y via controls; zoom via the standalone scale motion value.
@@ -93,11 +94,13 @@ function HubView({ modules }: { modules: AppModule[] }) {
     }
   }, [controls, scale, showGuide]);
 
-  // Zoom a step (wheel / buttons).
+  // Zoom a step (wheel / buttons) — keeps the current pan position, only
+  // scales. Does NOT snap back to CORE.
   const zoomBy = useCallback((delta: number) => {
     const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale.get() * delta));
-    resetView(next);
-  }, [resetView, scale]);
+    animateMV(scale, next, { duration: 0.25, ease: [0.22, 1, 0.36, 1] });
+    setIsZoomedOut(next <= 0.6);
+  }, [scale]);
 
   // Mouse wheel zoom (while hovering the hub).
   useEffect(() => {
@@ -158,7 +161,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
         dragElastic={0.12}
         initial={false}
         animate={controls}
-        style={{ scale }}
+        style={{ scale, marginLeft: "-2000px", marginTop: "-2000px" }}
         className="w-[4000px] h-[4000px] absolute top-1/2 left-1/2 outline-none"
       >
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
@@ -193,16 +196,29 @@ function HubView({ modules }: { modules: AppModule[] }) {
         {layoutNodes.map((node, i) => {
           // Depth parallax: cards farther from CORE recede slightly
           // (lower opacity + smaller) for a subtle 3D feel.
-          const depth = Math.min(0.25, Math.max(0, (node.radius - 300) / 1200));
+          const depth = Math.min(0.25, Math.max(0, ((node.radius || 0) - 300) / 1200));
           const depthOpacity = 1 - depth * 0.35;
           const depthScale = 1 - depth * 0.18;
+          // Use plain numeric transforms (no calc() strings) — reliable in
+          // every engine, avoids Framer Motion calc() edge cases.
+          // Node x/y are offsets from center; center the card at that point.
+          const left = HALF + node.x;
+          const top = HALF + node.y;
+          const translatePx = { x: "-50%", y: "-50%" } as const;
           return (
             <motion.div
               key={node.id}
-              className="absolute top-1/2 left-1/2 z-20 hover:z-50 focus-within:z-50 pointer-events-auto"
-              initial={{ x: "-50%", y: "-50%", opacity: 0 }}
-              animate={{ x: `calc(-50% + ${node.x}px)`, y: `calc(-50% + ${node.y}px)`, opacity: depthOpacity, scale: depthScale }}
-              transition={{ delay: 0.05 * i, type: 'spring', stiffness: 60 }}
+              className="absolute z-20 hover:z-50 focus-within:z-50 pointer-events-auto"
+              initial={{ left, top, opacity: 0, scale: depthScale * 0.9 }}
+              animate={{ left, top, opacity: depthOpacity, scale: depthScale }}
+              transition={{
+                duration: 0.5,
+                delay: 0.05 * i,
+                ease: [0.22, 1, 0.36, 1],
+                left: { duration: 0 },
+                top: { duration: 0 },
+              }}
+              style={{ x: "-50%", y: "-50%" }}
               whileHover={{ scale: depthScale * 1.06 }}
               whileTap={{ scale: depthScale * 0.96 }}
             >
@@ -212,8 +228,8 @@ function HubView({ modules }: { modules: AppModule[] }) {
         })}
       </motion.div>
 
-      {/* Camera controls — top-right, above the canvas */}
-      <div className="absolute top-4 right-4 z-30 flex flex-col gap-2 pointer-events-auto">
+      {/* Camera controls — top-right, below the hamburger menu in the header */}
+      <div className="absolute top-20 right-4 md:top-24 md:right-6 z-30 flex flex-col gap-2 pointer-events-auto">
         <button
           onClick={() => zoomBy(1.25)}
           title="Zoom in"
