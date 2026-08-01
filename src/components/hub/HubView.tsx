@@ -89,10 +89,12 @@ function HubView({ modules }: { modules: AppModule[] }) {
       const totalInThisRing = Math.min(itemsInRing, modules.length - itemsPlaced);
       const baseAngle = (indexInRing / totalInThisRing) * Math.PI * 2;
       const angleShift = (currentRing % 2 === 1) ? (Math.PI / totalInThisRing) : 0;
-      const angleOffset = (pseudoRandom(idx) - 0.5) * 0.3;
+      // Nearly-zero jitter: keeps crisp concentric orbits while avoiding a
+      // sterile, perfectly-aligned look.
+      const angleOffset = (pseudoRandom(idx) - 0.5) * 0.04;
       const angle = baseAngle + angleShift + angleOffset;
       const baseRadius = 320 + currentRing * 260;
-      const radiusOffset = (pseudoRandom(idx * 2) - 0.5) * 60;
+      const radiusOffset = (pseudoRandom(idx * 2) - 0.5) * 8;
       const radius = baseRadius + radiusOffset;
 
       return {
