@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback, useEffect, TouchEvent as ReactTouchEvent } from 'react';
-import { motion, useMotionValue, useAnimationControls, AnimatePresence, animate as animateMV, useTransform } from 'motion/react';
+import { motion, useMotionValue, useAnimationControls, AnimatePresence, animate as animateMV, useTransform, useMotionValueEvent } from 'motion/react';
 import { Terminal, LocateFixed, Hand, MousePointerClick } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppModule } from '../../types';
@@ -47,6 +47,16 @@ function HubView({ modules }: { modules: AppModule[] }) {
   const midY = useTransform(parallaxPan, p => p.y * 0.09);
   const nearX = useTransform(parallaxPan, p => p.x * 0.16);
   const nearY = useTransform(parallaxPan, p => p.y * 0.16);
+  // Drag constraints follow zoom: at higher scale the world is magnified, so
+  // the allowable camera travel should shrink. A fixed ±HALF bound (as the
+  // original dragConstraints) made panning “stick” at the panel edges once
+  // zoomed, forcing the reset button. We recompute bounds from scale.
+  const [dragBounds, setDragBounds] = useState(dragConstraints);
+  useMotionValueEvent(scale, 'change', (s) => {
+    if (s <= 0) return;
+    const lim = HALF / s;
+    setDragBounds({ left: -lim, right: lim, top: -lim, bottom: lim });
+  });
   const [showGuide, setShowGuide] = useState(() => {
     try {
       return !localStorage.getItem('hub_guided');
@@ -196,7 +206,7 @@ function HubView({ modules }: { modules: AppModule[] }) {
       <motion.div
         key={`hub-canvas-${instanceId}`}
         drag
-        dragConstraints={dragConstraints}
+        dragConstraints={dragBounds}
         dragElastic={0.12}
         initial={false}
         animate={controls}
