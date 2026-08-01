@@ -1,115 +1,53 @@
-import { ComponentType, SVGProps, CSSProperties } from 'react';
-import {
-  Box,
-  Anchor,
-  Frown,
-  Image,
-  Puzzle,
-  Smile,
-  Sparkles,
-  Briefcase,
-  FileText,
-  Mail,
-  Terminal,
-  User,
-  Gamepad2,
-  Trophy,
-  Activity,
-  Rocket,
-  LocateFixed,
-  Hand,
-  MousePointerClick,
-  Check,
-  X,
-  Plus,
-  Minus,
-  Home,
-  Menu,
-  Search,
-  Settings,
-  Star,
-  Heart,
-} from 'lucide-react';
+import { ComponentType, SVGProps, CSSProperties, ForwardRefExoticComponent } from 'react';
+import { Box } from 'lucide-react';
+import { DynamicIcon as OfficialDynamicIcon } from 'lucide-react/dynamic';
 
 type IconProps = SVGProps<SVGSVGElement>;
 type LucideComponent = ComponentType<IconProps>;
 
+// Official DynamicIcon accepts { name, fallback, ...icon props }.
+const Dynamic = OfficialDynamicIcon as unknown as ForwardRefExoticComponent<
+  IconProps & { name: string; fallback?: LucideComponent }
+>;
+
 const FALLBACK_ICON: LucideComponent = Box;
 
 /**
- * Explicit icon registry.
- *
- * We intentionally use named imports + a plain object map (NOT
- * `import * as icons` / `dynamicIconImports`) so that Vite's production
- * build keeps a dynamically-indexable mapping. The namespace-import and
- * dynamic-import approaches both resolve to undefined at runtime here,
- * which made every icon fall back to `Box`.
+ * Convert name to kebab-case (the format lucide's dynamic icon names use).
+ *   "Gamepad2" -> "gamepad-2", "MapPin" -> "map-pin", "anchor" -> "anchor"
  */
-const ICON_REGISTRY: Record<string, LucideComponent> = {
-  Box,
-  Anchor,
-  Frown,
-  Image,
-  Puzzle,
-  Smile,
-  Sparkles,
-  Briefcase,
-  FileText,
-  Mail,
-  Terminal,
-  User,
-  Gamepad2,
-  Trophy,
-  Activity,
-  Rocket,
-  LocateFixed,
-  Hand,
-  MousePointerClick,
-  Check,
-  X,
-  Plus,
-  Minus,
-  Home,
-  Menu,
-  Search,
-  Settings,
-  Star,
-  Heart,
-};
-
-/**
- * Convert an arbitrary icon name (PascalCase or kebab-case) to PascalCase.
- *   "gamepad-2" -> "Gamepad2", "map-pin" -> "MapPin", "anchor" -> "Anchor"
- */
-function toPascalCase(name: string): string {
-  if (!name) return 'Box';
-  const cleaned = name.replace(/[\s_-]+/g, ' ');
-  return cleaned
-    .split(' ')
-    .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
+export function toKebabCase(name: string): string {
+  if (!name) return 'box';
+  const normalized = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+  return normalized || 'box';
 }
 
-const iconCache = new Map<string, LucideComponent>();
-
 /**
- * Resolve a lucide icon by name from the explicit registry.
- * Falls back to `Box` if the name isn't registered.
+ * Resolve a lucide icon by name.
+ *
+ * We delegate to lucide-react's OFFICIAL `DynamicIcon` component, which uses
+ * `dynamicIconImports[name]()` internally to load ONLY the requested icon's
+ * chunk on demand. This is the package's supported dynamic-loading path and
+ * avoids the ESM namespace-indexing pitfalls of hand-rolled approaches.
  */
 export function lucideDynamic(name: string): LucideComponent {
-  if (iconCache.has(name)) return iconCache.get(name)!;
-  const key = toPascalCase(name);
-  const Icon = ICON_REGISTRY[key];
-  if (Icon) {
-    iconCache.set(name, Icon);
-    return Icon;
-  }
-  return FALLBACK_ICON;
+  return function DynamicIconWrapper(props: IconProps) {
+    return (
+      <Dynamic
+        name={toKebabCase(name)}
+        fallback={FALLBACK_ICON}
+        {...(props as Record<string, unknown>)}
+      />
+    );
+  } as LucideComponent;
 }
 
 /**
- * Renders a lucide icon by name, with a `Box` fallback.
+ * Renders a lucide icon by name, loaded on demand via lucide's official
+ * DynamicIcon. Falls back to `Box` until the icon chunk resolves (or on error).
  */
 export function DynamicIcon({
   name,
@@ -120,6 +58,12 @@ export function DynamicIcon({
   className?: string;
   style?: CSSProperties;
 }) {
-  const Icon = lucideDynamic(name);
-  return <Icon className={className} style={style as IconProps['style']} />;
+  return (
+    <Dynamic
+      name={toKebabCase(name)}
+      fallback={FALLBACK_ICON}
+      className={className}
+      style={style as Record<string, unknown>}
+    />
+  );
 }
