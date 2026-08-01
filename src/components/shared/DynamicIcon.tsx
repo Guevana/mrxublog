@@ -1,6 +1,35 @@
-import { Suspense, lazy, ComponentType, SVGProps, CSSProperties } from 'react';
-import { Box } from 'lucide-react';
-import * as dynamicIconImports from 'lucide-react/dynamicIconImports';
+import { ComponentType, SVGProps, CSSProperties } from 'react';
+import {
+  Box,
+  Anchor,
+  Frown,
+  Image,
+  Puzzle,
+  Smile,
+  Sparkles,
+  Briefcase,
+  FileText,
+  Mail,
+  Terminal,
+  User,
+  Gamepad2,
+  Trophy,
+  Activity,
+  Rocket,
+  LocateFixed,
+  Hand,
+  MousePointerClick,
+  Check,
+  X,
+  Plus,
+  Minus,
+  Home,
+  Menu,
+  Search,
+  Settings,
+  Star,
+  Heart,
+} from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
 type LucideComponent = ComponentType<IconProps>;
@@ -8,55 +37,79 @@ type LucideComponent = ComponentType<IconProps>;
 const FALLBACK_ICON: LucideComponent = Box;
 
 /**
- * Converts a Lucide icon name (PascalCase or kebab-case) to the kebab-case
- * key used by lucide-react's dynamicIconImports map.
+ * Explicit icon registry.
  *
- * Examples:
- *   "Gamepad2"  -> "gamepad-2"
- *   "smile"     -> "smile"
- *   "MapPin"    -> "map-pin"
+ * We intentionally use named imports + a plain object map (NOT
+ * `import * as icons` / `dynamicIconImports`) so that Vite's production
+ * build keeps a dynamically-indexable mapping. The namespace-import and
+ * dynamic-import approaches both resolve to undefined at runtime here,
+ * which made every icon fall back to `Box`.
  */
-export function toKebabCase(name: string): string {
-  if (!name) return 'box';
-  const normalized = name
-    // Insert hyphen between lowercase/digit and uppercase (camel -> kebab)
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[\s_]+/g, '-')
-    .toLowerCase();
-  return normalized || 'box';
-}
-
-const iconLoaderCache = new Map<string, LucideComponent>();
+const ICON_REGISTRY: Record<string, LucideComponent> = {
+  Box,
+  Anchor,
+  Frown,
+  Image,
+  Puzzle,
+  Smile,
+  Sparkles,
+  Briefcase,
+  FileText,
+  Mail,
+  Terminal,
+  User,
+  Gamepad2,
+  Trophy,
+  Activity,
+  Rocket,
+  LocateFixed,
+  Hand,
+  MousePointerClick,
+  Check,
+  X,
+  Plus,
+  Minus,
+  Home,
+  Menu,
+  Search,
+  Settings,
+  Star,
+  Heart,
+};
 
 /**
- * Resolves (and caches) a lucide icon component by name, using dynamic
- * imports so the main bundle only carries the icons actually referenced at
- * runtime. Falls back to `Box` if the name isn't a valid lucide icon.
+ * Convert an arbitrary icon name (PascalCase or kebab-case) to PascalCase.
+ *   "gamepad-2" -> "Gamepad2", "map-pin" -> "MapPin", "anchor" -> "Anchor"
+ */
+function toPascalCase(name: string): string {
+  if (!name) return 'Box';
+  const cleaned = name.replace(/[\s_-]+/g, ' ');
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+}
+
+const iconCache = new Map<string, LucideComponent>();
+
+/**
+ * Resolve a lucide icon by name from the explicit registry.
+ * Falls back to `Box` if the name isn't registered.
  */
 export function lucideDynamic(name: string): LucideComponent {
-  const key = toKebabCase(name) as keyof typeof dynamicIconImports;
-
-  if (iconLoaderCache.has(key)) {
-    return iconLoaderCache.get(key)!;
+  if (iconCache.has(name)) return iconCache.get(name)!;
+  const key = toPascalCase(name);
+  const Icon = ICON_REGISTRY[key];
+  if (Icon) {
+    iconCache.set(name, Icon);
+    return Icon;
   }
-
-  const loader = (dynamicIconImports as Record<string, unknown>)[key];
-  if (typeof loader === 'function') {
-    const Lazy = lazy(() =>
-      (loader as () => Promise<{ default: LucideComponent }>)().then(
-        m => ({ default: m.default }),
-      ),
-    );
-    iconLoaderCache.set(key, Lazy);
-    return Lazy;
-  }
-
   return FALLBACK_ICON;
 }
 
 /**
- * Renders a lazily loaded lucide icon by name, with a `Box` fallback.
- * Uses `dynamicIconImports` under the hood so each icon is its own chunk.
+ * Renders a lucide icon by name, with a `Box` fallback.
  */
 export function DynamicIcon({
   name,
@@ -68,9 +121,5 @@ export function DynamicIcon({
   style?: CSSProperties;
 }) {
   const Icon = lucideDynamic(name);
-  return (
-    <Suspense fallback={null}>
-      <Icon className={className} style={style as IconProps['style']} />
-    </Suspense>
-  );
+  return <Icon className={className} style={style as IconProps['style']} />;
 }
