@@ -19,9 +19,13 @@ export function AdaptiveText({ children, minFontSize = 6, maxFontSize, className
       const text = textRef.current;
       if (!container || !text) return;
 
-      // Temporarily set to max to measure natural size
+      // Temporarily set to max to measure natural size.
+      // IMPORTANT: measure with nowrap so long titles that would wrap
+      // (break-words) still report their real overflow width and trigger shrinking.
+      const prevWhiteSpace = text.style.whiteSpace;
       text.style.fontSize = `${maxFontSize}px`;
-      
+      text.style.whiteSpace = 'nowrap';
+
       let bestFit = maxFontSize;
       
       // We only shrink if it overflows horizontally or vertically (if container has explicit height)
@@ -42,6 +46,8 @@ export function AdaptiveText({ children, minFontSize = 6, maxFontSize, className
          }
       }
 
+      // Restore wrapping behavior (fallback for ultra-long text) after measuring.
+      text.style.whiteSpace = prevWhiteSpace;
       setFontSize(bestFit);
       text.style.fontSize = `${bestFit}px`;
     };
