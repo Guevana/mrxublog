@@ -107,6 +107,34 @@ add_action('rest_api_init', function () {
 ```
 *(Note: For production, replace `*` with your actual frontend domain URL for better security).*
 
+## 📊 访问统计 (Umami Analytics)
+
+本项目的访问统计使用**自建 [Umami](https://umami.is/)** 实例，不依赖 Google Analytics 等第三方服务。
+
+### 埋点位置
+
+埋点脚本**直接写在根目录的 `index.html` 中**（不在 `src/` 里），由 Vite 原样保留到构建产物 `dist/index.html`，因此**不需要在组件中做任何初始化**：
+
+```html
+<!-- Umami Analytics -->
+<script defer src="https://analytics.mrxublog.cn/script.js"
+        data-website-id="c43f92e3-b6eb-42d8-80fe-d4023522879e"></script>
+```
+
+| 项 | 值 |
+| --- | --- |
+| 统计服务 | `https://analytics.mrxublog.cn`（自建 Umami，Docker/Podman 部署） |
+| Website ID | `c43f92e3-b6eb-42d8-80fe-d4023522879e`（前端 www.mrxublog.cn） |
+| 后端站点 ID | `5d5e3edc-0482-4f4e-98ae-7d2628afefca`（api.mrxublog.cn，在 WordPress 侧注入，与本仓库无关） |
+
+### 注意事项
+
+- ⚠️ **脚本是无条件加载的**：`npm run dev` 本地开发时也会向统计服务上报。如不希望污染数据，本地调试时临时注释掉该 `<script>` 即可。
+- ⚠️ **换实例 / 换站点 ID 必须改 `index.html`**：脚本不在 `src/` 里，改代码搜 `src` 是搜不到的。
+- **停用统计**：删除或注释 `index.html` 里那个 `<script>` 标签后重新构建部署即可，无其他副作用。
+- **统计服务的可用性独立于本站**：Umami 挂了不影响页面渲染（`defer` + 跨域脚本，加载失败静默忽略）。
+- **重新 clone 的机器会带上埋点**：脚本已纳入版本控制，任何机器构建都会包含统计（早期曾作为本地未提交改动，现已提交）。
+
 ## 🏃 Getting Started
 
 ```bash
