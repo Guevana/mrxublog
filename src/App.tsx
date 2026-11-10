@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginSequence } from './components/LoginSequence';
 import { MainLayout } from './components/layout/MainLayout';
+import { AboutPage, ContactPage, PrivacyPage } from './components/pages/InfoPages';
 import { useAppStore } from './store/appStore';
 
 // Route-level code splitting: the Hub loads with the first paint; the
@@ -28,6 +29,9 @@ export default function App() {
           <Route index element={
             <Suspense fallback={null}><HubViewContainer /></Suspense>
           } />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
           <Route path="module/:id" element={
             <Suspense fallback={null}><DetailViewContainer /></Suspense>
           } />

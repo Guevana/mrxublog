@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, User, ExternalLink } from 'lucide-react';
-import { Outlet, useLocation, useOutlet } from 'react-router-dom';
+import { Menu, X, User, ExternalLink, Wrench, Info, Mail, Shield } from 'lucide-react';
+import { Outlet, useLocation, useOutlet, Link } from 'react-router-dom';
 import React from 'react';
 
 export function MainLayout() {
@@ -159,6 +159,22 @@ function Sidebar({ onClose }: { onClose: () => void }) {
                 )}
               </AnimatePresence>
             </div>
+
+            <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
+              <h3 className="text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase pb-2">站点导航</h3>
+              <Link to="/about" onClick={onClose} className="flex items-center gap-3 text-xs tracking-widest font-bold text-gray-500 hover:text-orange-500 transition-colors py-0.5">
+                <Info className="w-4 h-4" /> 关于我
+              </Link>
+              <Link to="/contact" onClick={onClose} className="flex items-center gap-3 text-xs tracking-widest font-bold text-gray-500 hover:text-orange-500 transition-colors py-0.5">
+                <Mail className="w-4 h-4" /> 联系
+              </Link>
+              <Link to="/privacy" onClick={onClose} className="flex items-center gap-3 text-xs tracking-widest font-bold text-gray-500 hover:text-orange-500 transition-colors py-0.5">
+                <Shield className="w-4 h-4" /> 隐私政策
+              </Link>
+              <a href="https://tools.mrxublog.cn/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-xs tracking-widest font-bold text-gray-500 hover:text-orange-500 transition-colors py-0.5">
+                <Wrench className="w-4 h-4" /> 实用工具站
+              </a>
+            </div>
           </div>
         </div>
         <div className="p-6 md:p-8 border-t border-gray-200 bg-gray-50/50 relative z-10">
@@ -183,9 +199,18 @@ function Footer() {
            Secure Connection Active
         </span>
       </div>
-      <a href="https://beian.miit.gov.cn/" className="text-gray-400 hover:text-orange-500 transition-colors">
+      <a href="https://beian.miit.gov.cn/" className="text-gray-400 hover:text-orange-500 transition-colors pointer-events-auto">
         备案号:渝ICP备2024044754号-1
         </a>
+      <div className="flex flex-wrap gap-4 items-center pointer-events-auto">
+        <Link to="/about" className="text-gray-400 hover:text-orange-500 transition-colors">关于我</Link>
+        <span className="hidden md:inline">|</span>
+        <Link to="/contact" className="text-gray-400 hover:text-orange-500 transition-colors">联系</Link>
+        <span className="hidden md:inline">|</span>
+        <Link to="/privacy" className="text-gray-400 hover:text-orange-500 transition-colors">隐私政策</Link>
+        <span className="hidden md:inline">|</span>
+        <a href="https://tools.mrxublog.cn/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-500 transition-colors">实用工具</a>
+      </div>
       <div className="flex flex-col items-end gap-1">
         <div className="w-32 h-px bg-gray-300 mb-1"></div>
         <span className="text-gray-400">MONITORING SYSTEMS ... ONLINE</span>

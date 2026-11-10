@@ -8,19 +8,19 @@ export function LoginSequence({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const sequence = async () => {
       // Step 1: Initial pause
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise(r => setTimeout(r, 100));
       setStep(1); // ACCESS PERMISSION REQUIRED
-      
-      await new Promise(r => setTimeout(r, 300));
+
+      await new Promise(r => setTimeout(r, 200));
       setStep(2); // Logo + Text
-      
-      await new Promise(r => setTimeout(r, 600));
-      setStep(3); // Circle + Authorized
-      
-      await new Promise(r => setTimeout(r, 700));
-      setStep(4); // Welcome
-      
+
       await new Promise(r => setTimeout(r, 300));
+      setStep(3); // Circle + Authorized
+
+      await new Promise(r => setTimeout(r, 350));
+      setStep(4); // Welcome
+
+      await new Promise(r => setTimeout(r, 150));
       onComplete();
     };
     sequence();
